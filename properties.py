@@ -10,7 +10,8 @@ class PARAMAPPER_PG_ColumnMeta(bpy.types.PropertyGroup):
         name='Data Type',
         items=[
             ('NUMERIC', 'Numeric', ''),
-            ('CATEGORICAL', 'Categorical', '')
+            ('CATEGORICAL', 'Categorical', ''),
+            ('DATETIME', 'Datetime', '')
         ],
         default='NUMERIC'
     )
@@ -128,7 +129,7 @@ class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
         items: list[tuple[str, str, str]] = [('NONE', "None", "Disable mapping for this axis")]
         
         for col in self.columns:
-            if col.data_type == 'NUMERIC':
+            if col.data_type in {'NUMERIC', 'DATETIME'}:
                 items.append((col.name, col.name, f'Map the numeric column {col.name}'))
         return items
 

@@ -61,48 +61,73 @@ class CSVParser(DataParser):
                     'tokens': None
                 }
             except ValueError:
-                unique_tokens = np.unique(col_data)
-                metadata[header] = {
-                    'type': 'CATEGORICAL',
-                    'min': None,
-                    'max': None,
-                    'tokens': '\n'.join(unique_tokens)
-                }
+                try:
+                    date_values = col_data.astype('datetime64')
+                    timestamps = date_values.astype('datetime64[s]').astype(float)
+
+                    metadata[header] = {
+                        'type': 'DATETIME',
+                        'min': float(np.min(timestamps)),
+                        'max': float(np.max(timestamps)),
+                        'tokens': None
+                    }
+                except ValueError:
+                    unique_tokens = np.unique(col_data)
+                    metadata[header] = {
+                        'type': 'CATEGORICAL',
+                        'min': None,
+                        'max': None,
+                        'tokens': '\n'.join(unique_tokens)
+                    }
             
         return metadata
     
     def create_sanitized_copy(self, columns_meta, output_path: str) -> str:
         token_maps = {}
+        datetime_cols = set()
+        
         for col in columns_meta:
             if col.data_type == 'CATEGORICAL' and col.unique_tokens:
                 tokens = col.unique_tokens.split('\n')
                 token_maps[col.name] = {t: str(idx) for idx, t in enumerate(tokens)}
+            elif col.data_type == 'DATETIME':
+                datetime_cols.add(col.name)
                 
         with open(self.filepath, mode='r', encoding='utf-8') as f_in, \
              open(output_path, mode='w', newline='', encoding='utf-8') as f_out:
             
             dialect = self._sniff_dialect(f_in)
-            
             reader = csv.reader(f_in, dialect)
             writer = csv.writer(f_out)
             
             headers = next(reader, [])
             writer.writerow(headers)
             
-            col_indices = {}
+            col_actions = {}
             for idx, h in enumerate(headers):
                 h_clean = h.strip()
                 if h_clean in token_maps:
-                    col_indices[idx] = token_maps[h_clean]
+                    col_actions[idx] = ('CATEGORICAL', token_maps[h_clean])
+                elif h_clean in datetime_cols:
+                    col_actions[idx] = ('DATETIME', None)
             
             for row in reader:
                 if not row: continue
                 
-                for idx, mapping in col_indices.items():
+                for idx, action_info in col_actions.items():
                     if idx < len(row):
+                        action_type, mapping = action_info
                         cell = row[idx].strip()
-                        row[idx] = mapping.get(cell, "0")
                         
+                        if action_type == 'CATEGORICAL':
+                            row[idx] = mapping.get(cell, "0")
+                        elif action_type == 'DATETIME':
+                            try:
+                                ts = np.datetime64(cell).astype('datetime64[s]').astype(float)
+                                row[idx] = str(ts)
+                            except ValueError:
+                                row[idx] = "0.0"
+                                
                 writer.writerow(row)
                 
         return output_path
