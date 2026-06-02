@@ -11,7 +11,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import bpy # type: ignore
+import bpy  # type: ignore
+
+from . import auto_load
 
 bl_info = {
     "name": "Paramapper",
@@ -23,15 +25,14 @@ bl_info = {
     "category": "3D View",
 }
 
-from . import auto_load
-
 auto_load.init()
 
 
 def register():
     auto_load.register()
-    
+
     from .properties import PARAMAPPER_PG_Settings
+
     bpy.types.Object.paramapper = bpy.props.PointerProperty(type=PARAMAPPER_PG_Settings)
 
 

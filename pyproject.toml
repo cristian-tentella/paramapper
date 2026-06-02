@@ -1,0 +1,27 @@
+[project]
+name = "paramapper"
+version = "0.3.0"
+requires-python = ">=3.14"
+
+[dependency-groups]
+dev = [
+    "fake-bpy-module-latest",
+    "ruff",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+exclude = [
+    ".git",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
