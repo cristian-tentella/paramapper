@@ -18,7 +18,7 @@ bl_info = {
     "author": "Cristian Tentella",
     "description": "",
     "blender": (5, 0, 0),
-    "version": (0, 1, 0),
+    "version": (0, 3, 0),
     "location": "View3D > Sidebar > Paramapper",
     "category": "3D View",
 }

@@ -276,6 +276,56 @@ class InfographicGenerator:
                 
         return node_geo_to_inst.outputs[0]
 
+    def _apply_culling(self, builder, current_geo, current_y: int):
+        valid_filters = [f for f in self.props.filters if f.column != 'NONE']
+        
+        if not valid_filters:
+            return current_geo, current_y
+
+        conditions = []
+        
+        for idx, f in enumerate(valid_filters):
+            node_attr = builder.create_node('GeometryNodeInputNamedAttribute', (-800, current_y))
+            node_attr.inputs['Name'].default_value = f.column
+            node_attr.data_type = 'FLOAT'
+
+            node_val = builder.create_node('ShaderNodeValue', (-800, current_y - 120))
+            node_val.name = f"ParamapperFilter_{idx}"
+            node_val.outputs[0].default_value = f.value
+
+            node_comp = builder.create_node('FunctionNodeCompare', (-600, current_y))
+            node_comp.data_type = 'FLOAT'
+            node_comp.operation = f.operation
+            builder.link(node_attr.outputs[0], node_comp.inputs[0])
+            builder.link(node_val.outputs[0], node_comp.inputs[1])
+
+            conditions.append(node_comp.outputs[0])
+            current_y -= 250
+
+        if len(conditions) == 1:
+            final_keep_socket = conditions[0]
+        else:
+            current_link = conditions[0]
+            for i in range(1, len(conditions)):
+                node_and = builder.create_node('FunctionNodeBooleanMath', (-400, current_y))
+                node_and.operation = 'AND'
+                builder.link(current_link, node_and.inputs[0])
+                builder.link(conditions[i], node_and.inputs[1])
+                current_link = node_and.outputs[0]
+                current_y -= 150
+            final_keep_socket = current_link
+
+        node_not = builder.create_node('FunctionNodeBooleanMath', (-200, current_y))
+        node_not.operation = 'NOT'
+        builder.link(final_keep_socket, node_not.inputs[0])
+
+        node_del = builder.create_node('GeometryNodeDeleteGeometry', (0, current_y))
+        node_del.domain = 'POINT'
+        builder.link(current_geo, node_del.inputs['Geometry'])
+        builder.link(node_not.outputs[0], node_del.inputs['Selection'])
+
+        return node_del.outputs[0], current_y - 200
+
     def _instantiate_labels(self, builder: GNTreeBuilder, base_points, mat_text):
         if self.props.map_text == 'NONE':
             return None
@@ -354,8 +404,9 @@ class InfographicGenerator:
         node_output, node_set_pos, node_combine_xyz, limits_geo = self._create_base_nodes(builder, sanitized_csv_path)
         
         current_y = self._map_axes(builder, node_combine_xyz)
-        base_points, scale_socket, current_y = self._map_scale(builder, node_set_pos.outputs[0], current_y)
-        
+
+        base_points, current_y = self._apply_culling(builder, node_set_pos.outputs[0], current_y)
+        base_points, scale_socket, current_y = self._map_scale(builder, base_points, current_y)
         base_points, current_y = self._map_color(builder, base_points, current_y)
         
         mat = MaterialFactory.get_data_material(self.props, self.obj.name)

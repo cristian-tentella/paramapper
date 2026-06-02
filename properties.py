@@ -1,7 +1,11 @@
 from typing import Any
 
 import bpy # type: ignore
-from bpy_extras.node_shader_utils import PrincipledBSDFWrapper # type: ignore
+
+from .constants import ParamapperNames # type: ignore
+
+_numeric_cache = []
+_filter_cache = []
 
 class PARAMAPPER_PG_ColumnMeta(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(name='Column Name') # type: ignore
@@ -20,6 +24,47 @@ class PARAMAPPER_PG_ColumnMeta(bpy.types.PropertyGroup):
     max_val: bpy.props.FloatProperty(name='Max Value', default=0.0) # type: ignore
     
     unique_tokens: bpy.props.StringProperty(name='Unique Tokens', default='') # type: ignore
+
+def get_filter_columns(self, context):
+    global _filter_cache
+    
+    obj = context.active_object
+    if not obj or not hasattr(obj, 'paramapper'):
+        return [('NONE', 'None', '')]
+    
+    items = [('NONE', 'Select column...', '')]
+    for col in obj.paramapper.columns:
+        if col.data_type == 'NUMERIC':
+            tooltip = f"Filter by {col.name} (Min: {col.min_val:.2f}, Max: {col.max_val:.2f})"
+            items.append((col.name, col.name, tooltip))
+
+    _filter_cache = items 
+    return items
+
+class PARAMAPPER_PG_FilterItem(bpy.types.PropertyGroup):
+    column: bpy.props.EnumProperty(
+        name="Column",
+        items=get_filter_columns,
+        update=lambda self, context: bpy.ops.paramapper.generate_nodes('INVOKE_DEFAULT')
+    ) # type: ignore
+    
+    operation: bpy.props.EnumProperty(
+        name="Operation",
+        items=[
+            ('GREATER_THAN', '>', 'Greater Than'),
+            ('LESS_THAN', '<', 'Less Than'),
+            ('EQUAL', '==', 'Equal To'),
+            ('NOT_EQUAL', '!=', 'Not Equal')
+        ],
+        default='GREATER_THAN',
+        update=lambda self, context: bpy.ops.paramapper.generate_nodes('INVOKE_DEFAULT')
+    ) # type: ignore
+    
+    value: bpy.props.FloatProperty(
+        name="Value",
+        default=0.0,
+        update=lambda self, context: update_fast_filters(self, context) 
+    ) # type: ignore
 
 def update_infographic(self, context):
     if getattr(self, "auto_update", False) and getattr(self, "dataset_has_been_parsed", False):
@@ -80,6 +125,19 @@ def update_fast(self, context):
         if node_principled:
             node_principled.inputs['Base Color'].default_value = self.bbox_color
 
+def update_fast_filters(self, context):
+    obj = context.active_object
+    if not obj or not obj.paramapper.dataset_has_been_parsed: return
+    
+    mod = obj.modifiers.get(ParamapperNames.MODIFIER)
+    if not mod or not mod.node_group: return
+    
+    nodes = mod.node_group.nodes
+    for idx, f in enumerate(obj.paramapper.filters):
+        n_val = nodes.get(f"ParamapperFilter_{idx}")
+        if n_val:
+            n_val.outputs[0].default_value = f.value
+
 class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
     dataset_path: bpy.props.StringProperty( # type: ignore
         name='Dataset path',
@@ -99,6 +157,9 @@ class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
         description="Automatically regenerate the infographic when a property changes",
         default=True,
     )
+    
+    filters: bpy.props.CollectionProperty(type=PARAMAPPER_PG_FilterItem) # type: ignore
+    active_filter_index: bpy.props.IntProperty(name='Active Filter Index', default=0) # type: ignore
     
     show_bounding_box: bpy.props.BoolProperty( # type: ignore
         name="Show Bounding Box",
@@ -124,13 +185,22 @@ class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
     columns: bpy.props.CollectionProperty(type=PARAMAPPER_PG_ColumnMeta) # type: ignore
     
     # Callbacks
-    
+
     def _get_numeric_columns(self, context: Any) -> list[tuple[str, str, str]]:
+        global _numeric_cache
+        
         items: list[tuple[str, str, str]] = [('NONE', "None", "Disable mapping for this axis")]
         
         for col in self.columns:
             if col.data_type in {'NUMERIC', 'DATETIME'}:
-                items.append((col.name, col.name, f'Map the numeric column {col.name}'))
+                if col.data_type == 'NUMERIC':
+                    tooltip = f"Map the numeric column {col.name}. Range: {col.min_val:.2f} to {col.max_val:.2f}"
+                    items.append((col.name, col.name, tooltip))
+                else:
+                    tooltip = f"Map the datetime column {col.name}"
+                    items.append((col.name, f"{col.name} (Datetime)", tooltip))
+                
+        _numeric_cache = items
         return items
 
     def _get_categorical_columns(self, context: Any) -> list[tuple[str, str, str]]:
@@ -140,6 +210,7 @@ class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
             if col.data_type == 'CATEGORICAL':
                 items.append((col.name, col.name, f"Use {col.name} texts as tags"))
         return items
+
     
     # Mapping properties
 
