@@ -155,6 +155,20 @@ def update_fast_filters(self, context):
 
 
 class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
+    def reset_to_defaults(self):
+        self.filters.clear()
+        self.active_filter_index = 0
+
+        self.map_x = "NONE"
+        self.map_y = "NONE"
+        self.map_z = "NONE"
+        self.map_scale = "NONE"
+        self.map_color = "NONE"
+        self.map_text = "NONE"
+
+        self.show_bounding_box = True
+
+
     dataset_path: bpy.props.StringProperty(  # type: ignore
         name="Dataset path",
         description="",

@@ -95,18 +95,7 @@ class PARAMAPPER_OT_parse_dataset(bpy.types.Operator):
             props.parsed_row_count = parser.row_count
 
             if props.dataset_path != props.last_parsed_path:
-                props.filters.clear()
-                props.active_filter_index = 0
-
-                props.map_x = "NONE"
-                props.map_y = "NONE"
-                props.map_z = "NONE"
-                props.map_scale = "NONE"
-                props.map_color = "NONE"
-                props.map_text = "NONE"
-
-                props.show_bounding_box = True
-
+                props.reset_to_defaults()
                 props.last_parsed_path = props.dataset_path
 
             props.columns.clear()
