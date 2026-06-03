@@ -6,6 +6,7 @@ requires-python = ">=3.14"
 [dependency-groups]
 dev = [
     "fake-bpy-module-latest",
+    "numpy>=2.4.6",
     "ruff",
 ]
 
