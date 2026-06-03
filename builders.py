@@ -1,0 +1,324 @@
+import bpy  # type: ignore
+
+from .constants import ParamapperNames
+from .utils import GNTreeBuilder
+
+
+class SpatialBuilder:
+    @staticmethod
+    def map_axes(props, builder: GNTreeBuilder, node_combine_xyz) -> int:
+        axis_mappings = {"X": props.map_x, "Y": props.map_y, "Z": props.map_z}
+        current_y = 0
+
+        for axis, col_name in axis_mappings.items():
+            if col_name == "NONE":
+                continue
+
+            col_meta = props.columns.get(col_name)
+            if not col_meta:
+                continue
+
+            mapped_socket = builder.create_mapped_attribute(
+                col_name,
+                from_min=col_meta.min_val,
+                from_max=col_meta.max_val,
+                to_min=0.0,
+                to_max=10.0,
+                location=(-400, current_y),
+            )
+            builder.link(mapped_socket, node_combine_xyz.inputs[axis])
+            current_y -= 250
+
+        return current_y
+
+    @staticmethod
+    def map_scale(props, builder: GNTreeBuilder, current_geo, current_y: int):
+        scale_socket = None
+
+        if props.map_scale != "NONE":
+            col_meta = props.columns.get(props.map_scale)
+            if col_meta:
+                scale_socket = builder.create_mapped_attribute(
+                    col_name=props.map_scale,
+                    from_min=col_meta.min_val,
+                    from_max=col_meta.max_val,
+                    to_min=0.1,
+                    to_max=1.0,
+                    location=(-400, current_y),
+                )
+                node_set_radius = builder.create_node("GeometryNodeSetPointRadius", (400, 0))
+                builder.link(scale_socket, node_set_radius.inputs["Radius"])
+                builder.link(current_geo, node_set_radius.inputs[0])
+
+                current_geo = node_set_radius.outputs[0]
+                current_y -= 250
+
+        return current_geo, scale_socket, current_y
+
+
+class FilterBuilder:
+    @staticmethod
+    def apply_culling(props, builder, current_geo, current_y: int):
+        valid_filters = [f for f in props.filters if f.column != "NONE"]
+
+        if not valid_filters:
+            return current_geo, current_y
+
+        conditions = []
+
+        for idx, f in enumerate(valid_filters):
+            node_attr = builder.create_node("GeometryNodeInputNamedAttribute", (-800, current_y))
+            node_attr.inputs["Name"].default_value = f.column
+            node_attr.data_type = "FLOAT"
+
+            node_val = builder.create_node("ShaderNodeValue", (-800, current_y - 120))
+            node_val.name = f"ParamapperFilter_{idx}"
+            node_val.outputs[0].default_value = f.value
+
+            node_comp = builder.create_node("FunctionNodeCompare", (-600, current_y))
+            node_comp.data_type = "FLOAT"
+            node_comp.operation = f.operation
+            builder.link(node_attr.outputs[0], node_comp.inputs[0])
+            builder.link(node_val.outputs[0], node_comp.inputs[1])
+
+            conditions.append(node_comp.outputs[0])
+            current_y -= 250
+
+        if len(conditions) == 1:
+            final_keep_socket = conditions[0]
+        else:
+            current_link = conditions[0]
+            for i in range(1, len(conditions)):
+                node_and = builder.create_node("FunctionNodeBooleanMath", (-400, current_y))
+                node_and.operation = "AND"
+                builder.link(current_link, node_and.inputs[0])
+                builder.link(conditions[i], node_and.inputs[1])
+                current_link = node_and.outputs[0]
+                current_y -= 150
+            final_keep_socket = current_link
+
+        node_not = builder.create_node("FunctionNodeBooleanMath", (-200, current_y))
+        node_not.operation = "NOT"
+        builder.link(final_keep_socket, node_not.inputs[0])
+
+        node_del = builder.create_node("GeometryNodeDeleteGeometry", (0, current_y))
+        node_del.domain = "POINT"
+        builder.link(current_geo, node_del.inputs["Geometry"])
+        builder.link(node_not.outputs[0], node_del.inputs["Selection"])
+
+        return node_del.outputs[0], current_y - 200
+
+
+class VisualBuilder:
+    @staticmethod
+    def instantiate_labels(props, builder: GNTreeBuilder, base_points, mat_text):
+        def _build_text_instances(
+            props, builder: GNTreeBuilder, tokens: list[str]
+        ) -> bpy.types.NodeSocket:
+            node_geo_to_inst = builder.create_node("GeometryNodeGeometryToInstance", (800, -400))
+
+            for i, token in enumerate(tokens):
+                node_str = builder.create_node("GeometryNodeStringToCurves", (0, -400 - (i * 250)))
+                node_str.inputs["String"].default_value = token
+
+                node_fill = builder.create_node("GeometryNodeFillCurve", (200, -400 - (i * 250)))
+                builder.link(node_str.outputs[0], node_fill.inputs[0])
+
+                if props.text_thickness > 0.0:
+                    node_extrude = builder.create_node(
+                        "GeometryNodeExtrudeMesh", (400, -400 - (i * 250))
+                    )
+                    node_extrude.inputs["Offset Scale"].default_value = props.text_thickness
+
+                    node_flip = builder.create_node(
+                        "GeometryNodeFlipFaces", (400, -550 - (i * 250))
+                    )
+                    node_join_cap = builder.create_node(
+                        "GeometryNodeJoinGeometry", (600, -400 - (i * 250))
+                    )
+
+                    builder.link(node_fill.outputs[0], node_flip.inputs[0])
+                    builder.link(node_flip.outputs[0], node_join_cap.inputs[0])
+                    builder.link(node_fill.outputs[0], node_extrude.inputs["Mesh"])
+                    builder.link(node_extrude.outputs["Mesh"], node_join_cap.inputs[0])
+
+                    builder.link(node_join_cap.outputs[0], node_geo_to_inst.inputs[0])
+                else:
+                    builder.link(node_fill.outputs[0], node_geo_to_inst.inputs[0])
+
+            return node_geo_to_inst.outputs[0]
+
+        if props.map_text == "NONE":
+            return None
+
+        col_meta = props.columns.get(props.map_text)
+        if not col_meta or not col_meta.unique_tokens:
+            return None
+
+        tokens = col_meta.unique_tokens.split("\n")
+
+        instances_socket = _build_text_instances(props, builder, tokens)
+
+        node_text_attr = builder.create_node(
+            "GeometryNodeInputNamedAttribute", (800, -600), data_type="FLOAT"
+        )
+        node_text_attr.inputs["Name"].default_value = props.map_text
+
+        node_inst = builder.create_node("GeometryNodeInstanceOnPoints", (1000, -300))
+        node_inst.inputs["Pick Instance"].default_value = True
+
+        node_text_scale = builder.create_node("ShaderNodeCombineXYZ", (800, -750))
+        node_text_scale.name = ParamapperNames.NODE_TEXT_SIZE
+        node_text_scale.inputs["X"].default_value = props.text_size
+        node_text_scale.inputs["Y"].default_value = props.text_size
+        node_text_scale.inputs["Z"].default_value = props.text_size
+
+        builder.link(node_text_scale.outputs[0], node_inst.inputs["Scale"])
+        builder.link(base_points, node_inst.inputs["Points"])
+        builder.link(instances_socket, node_inst.inputs["Instance"])
+        builder.link(node_text_attr.outputs[0], node_inst.inputs["Instance Index"])
+
+        node_translate = builder.create_node("GeometryNodeTranslateInstances", (1200, -300))
+        node_trans_vec = builder.create_node("ShaderNodeCombineXYZ", (1000, -500))
+        node_trans_vec.name = ParamapperNames.NODE_TEXT_OFFSET
+        node_trans_vec.inputs["X"].default_value = props.text_offset[0]
+        node_trans_vec.inputs["Y"].default_value = props.text_offset[1]
+        node_trans_vec.inputs["Z"].default_value = props.text_offset[2]
+
+        builder.link(node_inst.outputs[0], node_translate.inputs["Instances"])
+        builder.link(node_trans_vec.outputs[0], node_translate.inputs["Translation"])
+
+        node_rotate = builder.create_node("GeometryNodeRotateInstances", (1400, -300))
+        node_rot_vec = builder.create_node("ShaderNodeCombineXYZ", (1200, -500))
+        node_rot_vec.name = ParamapperNames.NODE_TEXT_ROTATION
+        node_rot_vec.inputs["X"].default_value = props.text_rotation[0]
+        node_rot_vec.inputs["Y"].default_value = props.text_rotation[1]
+        node_rot_vec.inputs["Z"].default_value = props.text_rotation[2]
+
+        builder.link(node_translate.outputs[0], node_rotate.inputs["Instances"])
+        builder.link(node_rot_vec.outputs[0], node_rotate.inputs["Rotation"])
+
+        node_set_mat = builder.create_node("GeometryNodeSetMaterial", (1600, -300))
+        if mat_text:
+            node_set_mat.inputs["Material"].default_value = mat_text
+
+        builder.link(node_rotate.outputs[0], node_set_mat.inputs["Geometry"])
+
+        return node_set_mat.outputs[0]
+
+    @staticmethod
+    def instantiate_models(props, builder: GNTreeBuilder, base_points, scale_socket, mat):
+        node_global_vec = builder.create_node("ShaderNodeCombineXYZ", (200, -100))
+        node_global_vec.name = ParamapperNames.NODE_GLOBAL_SCALE
+        node_global_vec.inputs["X"].default_value = props.global_scale
+        node_global_vec.inputs["Y"].default_value = props.global_scale
+        node_global_vec.inputs["Z"].default_value = props.global_scale
+
+        node_base_reduction = builder.create_node("ShaderNodeVectorMath", (400, -100))
+        node_base_reduction.operation = "MULTIPLY"
+        node_base_reduction.inputs[1].default_value = (0.2, 0.2, 0.2)
+
+        builder.link(node_global_vec.outputs[0], node_base_reduction.inputs[0])
+
+        if props.instance_object:
+            node_src = builder.create_node("GeometryNodeObjectInfo", (400, 200))
+            node_src.inputs["Object"].default_value = props.instance_object
+            node_src.transform_space = "ORIGINAL"
+            instance_socket = node_src.outputs["Geometry"]
+
+            node_inst = builder.create_node("GeometryNodeInstanceOnPoints", (800, 100))
+            builder.link(base_points, node_inst.inputs["Points"])
+            builder.link(instance_socket, node_inst.inputs["Instance"])
+
+            if scale_socket:
+                node_math_scale = builder.create_node("ShaderNodeVectorMath", (600, -100))
+                node_math_scale.operation = "MULTIPLY"
+                builder.link(scale_socket, node_math_scale.inputs[0])
+                builder.link(node_base_reduction.outputs[0], node_math_scale.inputs[1])
+                builder.link(node_math_scale.outputs["Vector"], node_inst.inputs["Scale"])
+            else:
+                builder.link(node_base_reduction.outputs[0], node_inst.inputs["Scale"])
+
+            current_geo = node_inst.outputs[0]
+            apply_data_material = props.override_material
+
+        else:
+            node_sep_xyz = builder.create_node("ShaderNodeSeparateXYZ", (600, -200))
+            builder.link(node_base_reduction.outputs[0], node_sep_xyz.inputs[0])
+
+            node_radius_math = builder.create_node("ShaderNodeMath", (800, -100))
+            node_radius_math.operation = "MULTIPLY"
+
+            if scale_socket:
+                builder.link(scale_socket, node_radius_math.inputs[0])
+                builder.link(node_sep_xyz.outputs["X"], node_radius_math.inputs[1])
+            else:
+                node_radius_math.inputs[0].default_value = 1.0
+                builder.link(node_sep_xyz.outputs["X"], node_radius_math.inputs[1])
+
+            node_set_radius = builder.create_node("GeometryNodeSetPointRadius", (1000, 100))
+            builder.link(base_points, node_set_radius.inputs["Points"])
+            builder.link(node_radius_math.outputs["Value"], node_set_radius.inputs["Radius"])
+
+            current_geo = node_set_radius.outputs[0]
+            apply_data_material = True
+
+        if apply_data_material:
+            node_mat = builder.create_node("GeometryNodeSetMaterial", (1200, 100))
+            if mat:
+                node_mat.inputs["Material"].default_value = mat
+            builder.link(current_geo, node_mat.inputs["Geometry"])
+            return node_mat.outputs[0]
+        else:
+            return current_geo
+
+    @staticmethod
+    def map_color(props, builder: GNTreeBuilder, current_geo, current_y: int):
+        if getattr(props, "map_color", "NONE") != "NONE":
+            col_meta = props.columns.get(props.map_color)
+            if col_meta:
+                color_socket = builder.create_mapped_attribute(
+                    col_name=props.map_color,
+                    from_min=col_meta.min_val,
+                    from_max=col_meta.max_val,
+                    to_min=0.0,
+                    to_max=1.0,
+                    location=(-400, current_y),
+                )
+
+                node_store = builder.create_node(
+                    "GeometryNodeStoreNamedAttribute", (400, current_y)
+                )
+                node_store.data_type = "FLOAT"
+                node_store.domain = "POINT"
+                node_store.inputs["Name"].default_value = ParamapperNames.COLOR_MAP_ATTR
+
+                builder.link(current_geo, node_store.inputs["Geometry"])
+                builder.link(color_socket, node_store.inputs["Value"])
+
+                return node_store.outputs[0], current_y - 250
+
+        return current_geo, current_y
+
+    @staticmethod
+    def add_bounding_box(props, builder: GNTreeBuilder, limits_geo, mat_bbox):
+        if not props.show_bounding_box:
+            return None
+
+        node_m2c = builder.create_node("GeometryNodeMeshToCurve", (1200, 200))
+        builder.link(limits_geo, node_m2c.inputs[0])
+
+        node_c2m = builder.create_node("GeometryNodeCurveToMesh", (1400, 200))
+        node_circle = builder.create_node("GeometryNodeCurvePrimitiveCircle", (1200, 50))
+        node_circle.inputs["Radius"].default_value = 0.02
+        node_circle.inputs["Resolution"].default_value = 4
+
+        builder.link(node_m2c.outputs[0], node_c2m.inputs["Curve"])
+        builder.link(node_circle.outputs[0], node_c2m.inputs["Profile Curve"])
+
+        node_mat = builder.create_node("GeometryNodeSetMaterial", (1600, 200))
+        if mat_bbox:
+            node_mat.inputs["Material"].default_value = mat_bbox
+
+        builder.link(node_c2m.outputs[0], node_mat.inputs["Geometry"])
+        return node_mat.outputs[0]
