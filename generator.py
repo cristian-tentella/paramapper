@@ -1,6 +1,3 @@
-import csv
-import os
-
 import bpy  # type: ignore
 
 from .constants import ParamapperNames
@@ -13,33 +10,6 @@ class InfographicGenerator:
         self.context = context
         self.props = props
         self.obj = context.active_object
-
-    def _sanitize_csv(self) -> str:
-        abs_path = bpy.path.abspath(self.props.dataset_path)
-        base, ext = os.path.splitext(abs_path)
-        sanitized_path = f"{base}_bl51_ready{ext}"
-
-        token_maps = {}
-        for col in self.props.columns:
-            if col.data_type == "CATEGORICAL" and col.unique_tokens:
-                tokens = col.unique_tokens.split("\n")
-                token_maps[col.name] = {t: str(idx) for idx, t in enumerate(tokens)}
-
-        with (
-            open(abs_path, mode="r", encoding="utf-8") as f_in,
-            open(sanitized_path, mode="w", newline="", encoding="utf-8") as f_out,
-        ):
-            reader = csv.DictReader(f_in)
-            writer = csv.DictWriter(f_out, fieldnames=reader.fieldnames)
-            writer.writeheader()
-
-            for row in reader:
-                for col_name, mapping in token_maps.items():
-                    if col_name in row:
-                        row[col_name] = mapping.get(row[col_name].strip(), "0")
-                writer.writerow(row)
-
-        return sanitized_path
 
     def _get_or_create_gn_tree(self, obj: bpy.types.Object) -> bpy.types.GeometryNodeTree:
         modifier = obj.modifiers.get(ParamapperNames.MODIFIER)

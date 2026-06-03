@@ -108,7 +108,7 @@ def update_fast(self, context):
 
     n_tsize = nodes.get(ParamapperNames.NODE_TEXT_SIZE)
     if n_tsize:
-        for i, axis in enumerate(["X", "Y", "Z"]):
+        for _, axis in enumerate(["X", "Y", "Z"]):
             n_tsize.inputs[axis].default_value = self.text_size
 
     n_toffset = nodes.get(ParamapperNames.NODE_TEXT_OFFSET)
