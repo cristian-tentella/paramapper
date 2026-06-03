@@ -31,9 +31,9 @@ def update_fast(self, context):
 
     n_spread = nodes.get(ParamapperNames.NODE_SPREAD)
     if n_spread:
-        n_spread.inputs["X"].default_value = self.spread_vector[0]
-        n_spread.inputs["Y"].default_value = self.spread_vector[1]
-        n_spread.inputs["Z"].default_value = self.spread_vector[2]
+        n_spread.inputs["X"].default_value = self.bounds_size[0]
+        n_spread.inputs["Y"].default_value = self.bounds_size[1]
+        n_spread.inputs["Z"].default_value = self.bounds_size[2]
 
     n_gscale = nodes.get(ParamapperNames.NODE_GLOBAL_SCALE)
     if n_gscale:

@@ -165,10 +165,11 @@ class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
         name="Z Axis", items=_get_numeric_columns, update=update_infographic
     )  # type: ignore
 
-    spread_vector: bpy.props.FloatVectorProperty(  # type: ignore
-        name="Spread (X,Y,Z)",
+    bounds_size: bpy.props.FloatVectorProperty(  # type: ignore
+        name="Dimensions",
         subtype="XYZ",
-        default=(1.0, 1.0, 1.0),
+        unit="LENGTH",
+        default=(10.0, 10.0, 10.0),
         size=3,
         min=0.01,
         update=update_fast,

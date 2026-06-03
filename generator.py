@@ -34,11 +34,17 @@ class InfographicGenerator:
         node_combine_scale = builder.create_node("ShaderNodeCombineXYZ", (-600, 350))
         node_combine_scale.name = ParamapperNames.NODE_SPREAD
 
-        node_combine_scale.inputs["X"].default_value = self.props.spread_vector[0]
-        node_combine_scale.inputs["Y"].default_value = self.props.spread_vector[1]
-        node_combine_scale.inputs["Z"].default_value = self.props.spread_vector[2]
+        node_combine_scale.inputs["X"].default_value = self.props.bounds_size[0]
+        node_combine_scale.inputs["Y"].default_value = self.props.bounds_size[1]
+        node_combine_scale.inputs["Z"].default_value = self.props.bounds_size[2]
 
-        builder.link(node_combine_scale.outputs[0], node_transform_base.inputs["Scale"])
+        node_bbox_scale = builder.create_node("ShaderNodeVectorMath", (-400, 350))
+        node_bbox_scale.operation = "DIVIDE"
+        node_bbox_scale.inputs[1].default_value = (10.0, 10.0, 10.0)
+
+        builder.link(node_combine_scale.outputs[0], node_bbox_scale.inputs[0])
+        builder.link(node_bbox_scale.outputs["Vector"], node_transform_base.inputs["Scale"])
+
         builder.link(node_input.outputs[0], node_transform_base.inputs["Geometry"])
         limits_geo = node_transform_base.outputs[0]
 
@@ -98,7 +104,9 @@ class InfographicGenerator:
         base_points, scale_socket, current_y = SpatialBuilder.map_scale(
             self.props, builder, base_points, current_y
         )
-        base_points, current_y = VisualBuilder.map_color(self.props, builder, base_points, current_y)
+        base_points, current_y = VisualBuilder.map_color(
+            self.props, builder, base_points, current_y
+        )
 
         mat = MaterialFactory.get_data_material(self.props, self.obj.name)
         mat_text = MaterialFactory.get_text_material(self.props, self.obj.name)
@@ -113,7 +121,9 @@ class InfographicGenerator:
         if mat_bbox.name not in self.obj.data.materials:
             self.obj.data.materials.append(mat_bbox)
 
-        main_geo = VisualBuilder.instantiate_models(self.props, builder, base_points, scale_socket, mat)
+        main_geo = VisualBuilder.instantiate_models(
+            self.props, builder, base_points, scale_socket, mat
+        )
         text_geo = VisualBuilder.instantiate_labels(self.props, builder, base_points, mat_text)
 
         bbox_geo = VisualBuilder.add_bounding_box(self.props, builder, limits_geo, mat_bbox)

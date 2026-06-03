@@ -23,7 +23,7 @@ class SpatialBuilder:
                 from_min=col_meta.min_val,
                 from_max=col_meta.max_val,
                 to_min=0.0,
-                to_max=10.0,
+                to_max=1.0,
                 location=(-400, current_y),
             )
             builder.link(mapped_socket, node_combine_xyz.inputs[axis])

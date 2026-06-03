@@ -111,7 +111,7 @@ class PARAMAPPER_PT_spatial(bpy.types.Panel):
         layout.separator()
 
         col_mult = layout.column(align=True)
-        col_mult.prop(props, "spread_vector", text="Spread")
+        col_mult.prop(props, "bounds_size", text="Dimensions")
         col_mult.prop(props, "global_scale", text="Items Base Size")
 
 
