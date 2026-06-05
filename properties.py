@@ -100,6 +100,13 @@ class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
         default=True,
     )
 
+    auto_fit_bounds: bpy.props.BoolProperty(  # type: ignore
+        name="Auto-Fit Bounds",
+        description="Dynamically redistribute filtered data to occupy the entire bounding box",
+        default=False,
+        update=update_infographic,
+    )
+
     filters: bpy.props.CollectionProperty(type=PARAMAPPER_PG_FilterItem)  # type: ignore
     active_filter_index: bpy.props.IntProperty(name="Active Filter Index", default=0)  # type: ignore
 

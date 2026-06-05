@@ -108,6 +108,37 @@ class FilterBuilder:
 
         return node_del.outputs[0], current_y - 200
 
+    @staticmethod
+    def apply_auto_fit(props, builder: GNTreeBuilder, current_geo, current_y: int):
+        if not props.auto_fit_bounds:
+            return current_geo, current_y
+
+        node_stat = builder.create_node("GeometryNodeAttributeStatistic", (-400, current_y))
+        node_stat.data_type = 'FLOAT_VECTOR'
+        node_stat.domain = 'POINT'
+
+        node_pos = builder.create_node("GeometryNodeInputPosition", (-600, current_y - 100))
+
+        builder.link(current_geo, node_stat.inputs["Geometry"])
+        builder.link(node_pos.outputs[0], node_stat.inputs["Attribute"])
+
+        node_map = builder.create_node("ShaderNodeMapRange", (-200, current_y))
+        node_map.data_type = 'FLOAT_VECTOR'
+
+        builder.link(node_pos.outputs[0], node_map.inputs["Vector"])
+        builder.link(node_stat.outputs["Min"], node_map.inputs["From Min"])
+        builder.link(node_stat.outputs["Max"], node_map.inputs["From Max"])
+
+        node_spread = builder.nodes.get(ParamapperNames.NODE_SPREAD)
+        if node_spread:
+            builder.link(node_spread.outputs[0], node_map.inputs["To Max"])
+
+        node_set_pos = builder.create_node("GeometryNodeSetPosition", (0, current_y))
+        builder.link(current_geo, node_set_pos.inputs["Geometry"])
+        builder.link(node_map.outputs["Vector"], node_set_pos.inputs["Position"])
+
+        return node_set_pos.outputs[0], current_y - 250
+
 
 class VisualBuilder:
     @staticmethod

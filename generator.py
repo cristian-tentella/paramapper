@@ -101,6 +101,9 @@ class InfographicGenerator:
         base_points, current_y = FilterBuilder.apply_culling(
             self.props, builder, node_set_pos.outputs[0], current_y
         )
+        base_points, current_y = FilterBuilder.apply_auto_fit(
+            self.props, builder, base_points, current_y
+        )
         base_points, scale_socket, current_y = SpatialBuilder.map_scale(
             self.props, builder, base_points, current_y
         )

@@ -109,6 +109,11 @@ class PARAMAPPER_PT_spatial(bpy.types.Panel):
         draw_axis_with_range("map_z", "Z")
 
         layout.separator()
+        
+        col_fit = layout.column(align=True)
+        col_fit.prop(props, "auto_fit_bounds", text="Auto-Fit Filtered Data", icon="ARROW_LEFTRIGHT")
+
+        layout.separator()
 
         col_mult = layout.column(align=True)
         col_mult.prop(props, "bounds_size", text="Dimensions")
