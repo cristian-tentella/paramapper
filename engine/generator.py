@@ -1,7 +1,7 @@
 import bpy  # type: ignore
 
 from .builders import FilterBuilder, SpatialBuilder, VisualBuilder
-from .constants import ParamapperNames
+from ..constants import ParamapperNames
 from .materials import MaterialFactory
 from .utils import GNTreeBuilder
 

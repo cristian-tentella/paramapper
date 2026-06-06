@@ -6,8 +6,8 @@ from bpy_extras.io_utils import ImportHelper  # type: ignore
 from bpy_extras.object_utils import object_data_add  # type: ignore
 
 from .constants import ParamapperNames
-from .generator import InfographicGenerator
-from .parsers import get_parser
+from .engine.generator import InfographicGenerator
+from .io.parsers import get_parser
 
 
 class PARAMAPPER_OT_browse_datasets(bpy.types.Operator, ImportHelper):

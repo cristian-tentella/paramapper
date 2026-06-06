@@ -1,6 +1,6 @@
 import bpy  # type: ignore
 
-from .constants import ParamapperNames
+from ..constants import ParamapperNames
 
 
 class PARAMAPPER_PT_main(bpy.types.Panel):

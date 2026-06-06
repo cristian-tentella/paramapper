@@ -1,6 +1,6 @@
 import bpy  # type: ignore
 
-from .constants import ParamapperNames
+from ..constants import ParamapperNames
 from .utils import GNTreeBuilder
 
 
