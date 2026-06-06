@@ -109,9 +109,11 @@ class PARAMAPPER_PT_spatial(bpy.types.Panel):
         draw_axis_with_range("map_z", "Z")
 
         layout.separator()
-        
+
         col_fit = layout.column(align=True)
-        col_fit.prop(props, "auto_fit_bounds", text="Auto-Fit Filtered Data", icon="ARROW_LEFTRIGHT")
+        col_fit.prop(
+            props, "auto_fit_bounds", text="Auto-Fit Filtered Data", icon="ARROW_LEFTRIGHT"
+        )
 
         layout.separator()
 
@@ -155,6 +157,10 @@ class PARAMAPPER_OT_add_filter(bpy.types.Operator):
         context.active_object.paramapper.active_filter_index = (
             len(context.active_object.paramapper.filters) - 1
         )
+
+        if context.active_object.paramapper.auto_update:
+            bpy.ops.paramapper.generate_nodes("INVOKE_DEFAULT")
+
         return {"FINISHED"}
 
 

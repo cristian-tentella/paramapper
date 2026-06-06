@@ -46,9 +46,7 @@ def get_filter_columns(self, context):
 
 class PARAMAPPER_PG_FilterItem(bpy.types.PropertyGroup):
     column: bpy.props.EnumProperty(
-        name="Column",
-        items=get_filter_columns,
-        update=lambda self, context: bpy.ops.paramapper.generate_nodes("INVOKE_DEFAULT"),
+        name="Column", items=get_filter_columns, update=update_infographic
     )  # type: ignore
 
     operation: bpy.props.EnumProperty(
@@ -60,12 +58,10 @@ class PARAMAPPER_PG_FilterItem(bpy.types.PropertyGroup):
             ("NOT_EQUAL", "!=", "Not Equal"),
         ],
         default="GREATER_THAN",
-        update=lambda self, context: bpy.ops.paramapper.generate_nodes("INVOKE_DEFAULT"),
+        update=update_infographic,
     )  # type: ignore
 
-    value: bpy.props.FloatProperty(
-        name="Value", default=0.0, update=lambda self, context: update_fast_filters(self, context)
-    )  # type: ignore
+    value: bpy.props.FloatProperty(name="Value", default=0.0, update=update_fast_filters)  # type: ignore
 
 
 class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
