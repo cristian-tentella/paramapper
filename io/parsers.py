@@ -1,22 +1,35 @@
 import csv
 import os
-from typing import Any, TextIO
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Optional, TextIO
 
 import numpy as np
 
 
-class DataParser:
+@dataclass
+class ColumnMetadata:
+    data_type: str
+    min_val: Optional[float] = None
+    max_val: Optional[float] = None
+    tokens: Optional[str] = None
+
+
+class DataParser(ABC):
     def __init__(self, filepath: str):
         self.filepath = filepath
         self.headers: list[str] = []
         self.row_count: int = 0
 
+    @abstractmethod
     def validate_file(self) -> None:
         pass
 
+    @abstractmethod
     def extract_metadata(self) -> dict[str, dict[str, Any]]:
         pass
 
+    @abstractmethod
     def create_sanitized_copy(self, columns_meta, output_path: str) -> str:
         pass
 
@@ -57,31 +70,31 @@ class CSVParser(DataParser):
 
             try:
                 numeric_values = col_data.astype(float)
-                metadata[header] = {
-                    "type": "NUMERIC",
-                    "min": float(np.min(numeric_values)),
-                    "max": float(np.max(numeric_values)),
-                    "tokens": None,
-                }
+                metadata[header] = ColumnMetadata(
+                    data_type="NUMERIC",
+                    min_val=float(np.min(numeric_values)),
+                    max_val=float(np.max(numeric_values)),
+                    tokens=None,
+                )
             except ValueError:
                 try:
                     date_values = col_data.astype("datetime64")
                     timestamps = date_values.astype("datetime64[s]").astype(float)
 
-                    metadata[header] = {
-                        "type": "DATETIME",
-                        "min": float(np.min(timestamps)),
-                        "max": float(np.max(timestamps)),
-                        "tokens": None,
-                    }
+                    metadata[header] = ColumnMetadata(
+                        data_type="DATETIME",
+                        min_val=float(np.min(timestamps)),
+                        max_val=float(np.max(timestamps)),
+                        tokens=None,
+                    )
                 except ValueError:
                     unique_tokens = np.unique(col_data)
-                    metadata[header] = {
-                        "type": "CATEGORICAL",
-                        "min": None,
-                        "max": None,
-                        "tokens": "\n".join(unique_tokens),
-                    }
+                    metadata[header] = ColumnMetadata(
+                        data_type="CATEGORICAL",
+                        min_val=None,
+                        max_val=None,
+                        tokens="\n".join(unique_tokens),
+                    )
 
         return metadata
 
