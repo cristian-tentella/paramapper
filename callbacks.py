@@ -1,3 +1,5 @@
+import math
+
 import bpy  # type: ignore
 
 from .constants import ParamapperNames
@@ -112,6 +114,41 @@ def paramapper_frame_handler(scene):
             if obj.paramapper.auto_update and obj.paramapper.dataset_has_been_parsed:
                 apply_fast_updates(obj)
                 apply_filter_updates(obj)
+
+
+def paramapper_scale_sync_timer():
+    for obj in bpy.context.scene.objects:
+        if obj.type == 'MESH' and hasattr(obj, "paramapper"):
+            props = obj.paramapper
+            if not props.dataset_has_been_parsed:
+                continue
+                
+            scale = obj.scale
+            
+            if math.isclose(scale[0], 1.0, abs_tol=1e-4) and \
+               math.isclose(scale[1], 1.0, abs_tol=1e-4) and \
+               math.isclose(scale[2], 1.0, abs_tol=1e-4):
+                obj["_pm_last_scale"] = [1.0, 1.0, 1.0]
+                continue
+            
+            last_scale = obj.get("_pm_last_scale", [0.0, 0.0, 0.0])
+            
+            if math.isclose(scale[0], last_scale[0], abs_tol=1e-5) and \
+               math.isclose(scale[1], last_scale[1], abs_tol=1e-5) and \
+               math.isclose(scale[2], last_scale[2], abs_tol=1e-5):
+                
+                props.bounds_size = (
+                    max(0.01, props.bounds_size[0] * scale[0]),
+                    max(0.01, props.bounds_size[1] * scale[1]),
+                    max(0.01, props.bounds_size[2] * scale[2])
+                )
+                
+                obj.scale = (1.0, 1.0, 1.0)
+                obj["_pm_last_scale"] = [1.0, 1.0, 1.0]
+            else:
+                obj["_pm_last_scale"] = [scale[0], scale[1], scale[2]]
+                
+    return 0.1
 
 
 def get_numeric_columns(self, context) -> list[tuple[str, str, str]]:
