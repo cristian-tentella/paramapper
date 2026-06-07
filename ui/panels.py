@@ -167,6 +167,11 @@ class PARAMAPPER_PT_visuals(bpy.types.Panel):
         props = context.active_object.paramapper
         obj = context.active_object
 
+        box_anim = layout.box()
+        row_anim = box_anim.row(align=True)
+        row_anim.prop(props, "build_up", text="Build-up", icon="TIME")
+        layout.separator()
+
         col_model = layout.column(align=True)
         col_model.prop(props, "instance_object", text="Instance Model")
         if props.instance_object:

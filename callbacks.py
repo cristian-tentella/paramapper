@@ -5,6 +5,7 @@ from .constants import ParamapperNames
 _numeric_cache = []
 _filter_cache = []
 
+
 def update_infographic(self, context):
     obj = context.active_object
     if not obj or not hasattr(obj, "paramapper"):
@@ -21,16 +22,8 @@ def update_infographic(self, context):
         pass
 
 
-def update_fast(self, context):
-    obj = context.active_object
-    if not obj or obj.type != "MESH" or not hasattr(obj, "paramapper"):
-        return
-
+def apply_fast_updates(obj):
     props = obj.paramapper
-
-    if not props.auto_update or not props.dataset_has_been_parsed:
-        return
-
     modifier = obj.modifiers.get(ParamapperNames.MODIFIER)
     if not modifier or not modifier.node_group:
         return
@@ -64,6 +57,10 @@ def update_fast(self, context):
         for i, axis in enumerate(["X", "Y", "Z"]):
             n_trot.inputs[axis].default_value = props.text_rotation[i]
 
+    n_buildup = nodes.get("ParamapperBuildUp")
+    if n_buildup:
+        n_buildup.outputs[0].default_value = props.build_up
+
     mat_text = bpy.data.materials.get(f"{ParamapperNames.TEXT_MATERIAL}_{obj.name}")
     if mat_text and mat_text.use_nodes:
         node_principled = next(
@@ -81,20 +78,40 @@ def update_fast(self, context):
             node_principled.inputs["Base Color"].default_value = props.bbox_color
 
 
-def update_fast_filters(self, context):
-    obj = context.active_object
-    if not obj or not obj.paramapper.dataset_has_been_parsed:
-        return
-
+def apply_filter_updates(obj):
     mod = obj.modifiers.get(ParamapperNames.MODIFIER)
     if not mod or not mod.node_group:
         return
-
     nodes = mod.node_group.nodes
     for idx, f in enumerate(obj.paramapper.filters):
         n_val = nodes.get(f"ParamapperFilter_{idx}")
         if n_val:
             n_val.outputs[0].default_value = f.value
+
+
+def update_fast(self, context):
+    obj = context.active_object
+    if not obj or obj.type != "MESH" or not hasattr(obj, "paramapper"):
+        return
+    if not obj.paramapper.auto_update or not obj.paramapper.dataset_has_been_parsed:
+        return
+    apply_fast_updates(obj)
+
+
+def update_fast_filters(self, context):
+    obj = context.active_object
+    if not obj or not hasattr(obj, "paramapper") or not obj.paramapper.dataset_has_been_parsed:
+        return
+    apply_filter_updates(obj)
+
+
+@bpy.app.handlers.persistent
+def paramapper_frame_handler(scene):
+    for obj in scene.objects:
+        if obj.type == "MESH" and hasattr(obj, "paramapper"):
+            if obj.paramapper.auto_update and obj.paramapper.dataset_has_been_parsed:
+                apply_fast_updates(obj)
+                apply_filter_updates(obj)
 
 
 def get_numeric_columns(self, context) -> list[tuple[str, str, str]]:

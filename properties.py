@@ -89,6 +89,18 @@ class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
         name="Global Scale", default=1.0, min=0.01, update=update_fast
     )
 
+    # Animation
+
+    build_up: bpy.props.FloatProperty(  # type: ignore
+        name="Build-up Animation",
+        description="Animate the appearance of the data points",
+        default=1.0,
+        min=0.0,
+        max=1.0,
+        subtype="FACTOR",
+        update=update_fast,
+    )
+
     # Filters
 
     filters: bpy.props.CollectionProperty(type=PARAMAPPER_PG_FilterItem)  # type: ignore

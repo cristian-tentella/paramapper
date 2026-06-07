@@ -14,13 +14,15 @@
 import bpy  # type: ignore
 
 from . import auto_load
+from .callbacks import paramapper_frame_handler
+from .properties import PARAMAPPER_PG_Settings
 
 bl_info = {
     "name": "Paramapper",
     "author": "Cristian Tentella",
     "description": "",
     "blender": (5, 0, 0),
-    "version": (0, 5, 0),
+    "version": (0, 6, 0),
     "location": "View3D > Sidebar > Paramapper",
     "category": "3D View",
 }
@@ -31,11 +33,15 @@ auto_load.init()
 def register():
     auto_load.register()
 
-    from .properties import PARAMAPPER_PG_Settings
-
     bpy.types.Object.paramapper = bpy.props.PointerProperty(type=PARAMAPPER_PG_Settings)
+
+    if paramapper_frame_handler not in bpy.app.handlers.frame_change_post:
+        bpy.app.handlers.frame_change_post.append(paramapper_frame_handler)
 
 
 def unregister():
+    if paramapper_frame_handler in bpy.app.handlers.frame_change_post:
+        bpy.app.handlers.frame_change_post.remove(paramapper_frame_handler)
+
     del bpy.types.Object.paramapper
     auto_load.unregister()
