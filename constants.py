@@ -1,24 +1,27 @@
-class ParamapperNames:
-    # Objects
-    CONTAINER_OBJ = "ParamapperInfographic"
-    CONTAINER_MESH = "ParamapperCloudData"
-    MODIFIER = "ParamapperGraph"
-    NODE_TREE = "ParamapperInfographicGN"
+class PM:
+    class Objects:
+        CONTAINER = "ParamapperInfographic"
+        MESH = "ParamapperCloudData"
+        MODIFIER = "ParamapperGraph"
+        NODE_TREE = "ParamapperInfographicGN"
 
-    # Materials
-    MATERIAL = "ParamapperDataMaterial"
-    BBOX_MATERIAL = "ParamapperBBoxMaterial"
-    TEXT_MATERIAL = "ParamapperTextMaterial"
+    class Materials:
+        DATA = "ParamapperDataMaterial"
+        BBOX = "ParamapperBBoxMaterial"
+        TEXT = "ParamapperTextMaterial"
 
-    # Nodes
-    COLOR_RAMP_NODE = "ParamapperColorRamp"
+    class Nodes:
+        COLOR_RAMP = "ParamapperColorRamp"
+        BUILD_UP = "ParamapperBuildUp"
+        SPREAD = "ParamapperNodeSpread"
+        GLOBAL_SCALE = "ParamapperNodeGlobalScale"
+        TEXT_SIZE = "ParamapperNodeTextSize"
+        TEXT_OFFSET = "ParamapperNodeTextOffset"
+        TEXT_ROTATION = "ParamapperNodeTextRotation"
+        FILTER_PREFIX = "ParamapperFilter"
 
-    # Attributes
-    COLOR_MAP_ATTR = "ParamapperColorMap"
+    class Attributes:
+        COLOR_MAP = "ParamapperColorMap"
 
-    # Fast Update Nodes
-    NODE_SPREAD = "ParamapperNodeSpread"
-    NODE_GLOBAL_SCALE = "ParamapperNodeGlobalScale"
-    NODE_TEXT_SIZE = "ParamapperNodeTextSize"
-    NODE_TEXT_OFFSET = "ParamapperNodeTextOffset"
-    NODE_TEXT_ROTATION = "ParamapperNodeTextRotation"
+    class Keys:
+        LAST_SCALE = "ParamapperLastScale"

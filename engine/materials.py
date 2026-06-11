@@ -1,12 +1,12 @@
 import bpy  # type: ignore
 
-from ..constants import ParamapperNames
+from ..constants import PM
 
 
 class MaterialFactory:
     @staticmethod
     def get_data_material(props, obj_name: str) -> bpy.types.Material:
-        mat_name = f"{ParamapperNames.MATERIAL}_{obj_name}"
+        mat_name = f"{PM.Materials.DATA}_{obj_name}"
         mat = bpy.data.materials.get(mat_name)
 
         if not mat:
@@ -24,13 +24,13 @@ class MaterialFactory:
 
             node_ramp = nodes.new("ShaderNodeValToRGB")
             node_ramp.location = (-300, 0)
-            node_ramp.name = ParamapperNames.COLOR_RAMP_NODE
+            node_ramp.name = PM.Nodes.COLOR_RAMP
 
             node_ramp.color_ramp.elements[0].color = (0.02, 0.1, 1.0, 1.0)
             node_ramp.color_ramp.elements[1].color = (1.0, 0.05, 0.05, 1.0)
 
             node_attr = nodes.new("ShaderNodeAttribute")
-            node_attr.attribute_name = ParamapperNames.COLOR_MAP_ATTR
+            node_attr.attribute_name = PM.Attributes.COLOR_MAP
             node_attr.attribute_type = "GEOMETRY"
             node_attr.location = (-500, 0)
 
@@ -39,20 +39,20 @@ class MaterialFactory:
             links.new(node_principled.outputs["BSDF"], node_output.inputs["Surface"])
 
         nodes = mat.node_tree.nodes
-        node_ramp = nodes.get(ParamapperNames.COLOR_RAMP_NODE)
+        node_ramp = nodes.get(PM.Nodes.COLOR_RAMP)
 
         if not node_ramp:
             for node in nodes:
                 if node.type == "VALTORGB":
                     node_ramp = node
-                    node_ramp.name = ParamapperNames.COLOR_RAMP_NODE
+                    node_ramp.name = PM.Nodes.COLOR_RAMP
                     break
 
         return mat
 
     @staticmethod
     def get_text_material(props, obj_name: str) -> bpy.types.Material:
-        mat_name = f"{ParamapperNames.TEXT_MATERIAL}_{obj_name}"
+        mat_name = f"{PM.Materials.TEXT}_{obj_name}"
         mat = bpy.data.materials.get(mat_name)
 
         if not mat:
@@ -69,7 +69,7 @@ class MaterialFactory:
 
     @staticmethod
     def get_bbox_material(props, obj_name: str) -> bpy.types.Material:
-        mat_name = f"{ParamapperNames.BBOX_MATERIAL}_{obj_name}"
+        mat_name = f"{PM.Materials.BBOX}_{obj_name}"
         mat = bpy.data.materials.get(mat_name)
 
         if not mat:

@@ -1,6 +1,6 @@
 import bpy  # type: ignore
 
-from ..constants import ParamapperNames
+from ..constants import PM
 
 
 class PARAMAPPER_PT_main(bpy.types.Panel):
@@ -208,10 +208,10 @@ class PARAMAPPER_PT_visuals(bpy.types.Panel):
             layout.prop(props, "map_color", text="Color")
 
             if props.map_color != "NONE":
-                mat_name = f"{ParamapperNames.MATERIAL}_{obj.name}"
+                mat_name = f"{PM.Materials.DATA}_{obj.name}"
                 mat = bpy.data.materials.get(mat_name)
                 if mat and mat.use_nodes:
-                    node_ramp = mat.node_tree.nodes.get(ParamapperNames.COLOR_RAMP_NODE)
+                    node_ramp = mat.node_tree.nodes.get(PM.Nodes.COLOR_RAMP)
                     if node_ramp:
                         box_ramp = layout.box()
                         box_ramp.template_color_ramp(node_ramp, "color_ramp", expand=True)

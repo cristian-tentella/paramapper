@@ -4,7 +4,7 @@ import traceback
 import bpy  # type: ignore
 from bpy_extras.object_utils import object_data_add  # type: ignore
 
-from ..constants import ParamapperNames
+from ..constants import PM
 from ..engine.generator import InfographicGenerator
 from ..io.parsers import get_parser  # type: ignore
 
@@ -15,7 +15,7 @@ class PARAMAPPER_OT_create_object(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        mesh_data = bpy.data.meshes.new(ParamapperNames.CONTAINER_MESH)
+        mesh_data = bpy.data.meshes.new(PM.Objects.MESH)
 
         verts = [
             (0.0, 0.0, 0.0),
@@ -44,7 +44,7 @@ class PARAMAPPER_OT_create_object(bpy.types.Operator):
 
         mesh_data.from_pydata(verts, edges, [])
 
-        object_data_add(context, mesh_data, name=ParamapperNames.CONTAINER_OBJ)
+        object_data_add(context, mesh_data, name=PM.Objects.CONTAINER)
 
         self.report({"INFO"}, "Infographic Object created successfully!")
         return {"FINISHED"}

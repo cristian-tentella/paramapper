@@ -1,6 +1,6 @@
 import bpy  # type: ignore
 
-from ..constants import ParamapperNames
+from ..constants import PM
 from .builders import FilterBuilder, SpatialBuilder, VisualBuilder
 from .materials import MaterialFactory
 from .utils import GNTreeBuilder
@@ -13,14 +13,14 @@ class InfographicGenerator:
         self.obj = context.active_object
 
     def _get_or_create_gn_tree(self, obj: bpy.types.Object) -> bpy.types.GeometryNodeTree:
-        modifier = obj.modifiers.get(ParamapperNames.MODIFIER)
+        modifier = obj.modifiers.get(PM.Objects.MODIFIER)
         if not modifier:
-            modifier = obj.modifiers.new(name=ParamapperNames.MODIFIER, type="NODES")
+            modifier = obj.modifiers.new(name=PM.Objects.MODIFIER, type="NODES")
 
         if modifier.node_group:
             bpy.data.node_groups.remove(modifier.node_group)
 
-        ntree = bpy.data.node_groups.new(name=ParamapperNames.NODE_TREE, type="GeometryNodeTree")
+        ntree = bpy.data.node_groups.new(name=PM.Objects.NODE_TREE, type="GeometryNodeTree")
         modifier.node_group = ntree
         return ntree
 
@@ -32,7 +32,7 @@ class InfographicGenerator:
 
         node_transform_base = builder.create_node("GeometryNodeTransform", (-400, 200))
         node_combine_scale = builder.create_node("ShaderNodeCombineXYZ", (-600, 350))
-        node_combine_scale.name = ParamapperNames.NODE_SPREAD
+        node_combine_scale.name = PM.Nodes.SPREAD
 
         node_combine_scale.inputs["X"].default_value = self.props.bounds_size[0]
         node_combine_scale.inputs["Y"].default_value = self.props.bounds_size[1]
@@ -130,7 +130,7 @@ class InfographicGenerator:
         text_geo = VisualBuilder.instantiate_labels(self.props, builder, base_points, mat_text)
 
         node_buildup = builder.create_node("ShaderNodeValue", (1200, 200))
-        node_buildup.name = "ParamapperBuildUp"
+        node_buildup.name = PM.Nodes.BUILD_UP
         node_buildup.outputs[0].default_value = self.props.build_up
 
         node_count = builder.create_node("ShaderNodeValue", (1200, 0))

@@ -1,6 +1,6 @@
 import bpy  # type: ignore
 
-from ..constants import ParamapperNames
+from ..constants import PM
 from .utils import GNTreeBuilder
 
 
@@ -72,7 +72,7 @@ class FilterBuilder:
             node_attr.data_type = "FLOAT"
 
             node_val = builder.create_node("ShaderNodeValue", (-800, current_y - 120))
-            node_val.name = f"ParamapperFilter_{idx}"
+            node_val.name = f"{PM.Nodes.FILTER_PREFIX}{idx}"
             node_val.outputs[0].default_value = f.value
 
             node_comp = builder.create_node("FunctionNodeCompare", (-600, current_y))
@@ -114,8 +114,8 @@ class FilterBuilder:
             return current_geo, current_y
 
         node_stat = builder.create_node("GeometryNodeAttributeStatistic", (-400, current_y))
-        node_stat.data_type = 'FLOAT_VECTOR'
-        node_stat.domain = 'POINT'
+        node_stat.data_type = "FLOAT_VECTOR"
+        node_stat.domain = "POINT"
 
         node_pos = builder.create_node("GeometryNodeInputPosition", (-600, current_y - 100))
 
@@ -123,13 +123,13 @@ class FilterBuilder:
         builder.link(node_pos.outputs[0], node_stat.inputs["Attribute"])
 
         node_map = builder.create_node("ShaderNodeMapRange", (-200, current_y))
-        node_map.data_type = 'FLOAT_VECTOR'
+        node_map.data_type = "FLOAT_VECTOR"
 
         builder.link(node_pos.outputs[0], node_map.inputs["Vector"])
         builder.link(node_stat.outputs["Min"], node_map.inputs["From Min"])
         builder.link(node_stat.outputs["Max"], node_map.inputs["From Max"])
 
-        node_spread = builder.nodes.get(ParamapperNames.NODE_SPREAD)
+        node_spread = builder.nodes.get(PM.Nodes.SPREAD)
         if node_spread:
             builder.link(node_spread.outputs[0], node_map.inputs["To Max"])
 
@@ -199,7 +199,7 @@ class VisualBuilder:
         node_inst.inputs["Pick Instance"].default_value = True
 
         node_text_scale = builder.create_node("ShaderNodeCombineXYZ", (800, -750))
-        node_text_scale.name = ParamapperNames.NODE_TEXT_SIZE
+        node_text_scale.name = PM.Nodes.TEXT_SIZE
         node_text_scale.inputs["X"].default_value = props.text_size
         node_text_scale.inputs["Y"].default_value = props.text_size
         node_text_scale.inputs["Z"].default_value = props.text_size
@@ -211,7 +211,7 @@ class VisualBuilder:
 
         node_translate = builder.create_node("GeometryNodeTranslateInstances", (1200, -300))
         node_trans_vec = builder.create_node("ShaderNodeCombineXYZ", (1000, -500))
-        node_trans_vec.name = ParamapperNames.NODE_TEXT_OFFSET
+        node_trans_vec.name = PM.Nodes.TEXT_OFFSET
         node_trans_vec.inputs["X"].default_value = props.text_offset[0]
         node_trans_vec.inputs["Y"].default_value = props.text_offset[1]
         node_trans_vec.inputs["Z"].default_value = props.text_offset[2]
@@ -221,7 +221,7 @@ class VisualBuilder:
 
         node_rotate = builder.create_node("GeometryNodeRotateInstances", (1400, -300))
         node_rot_vec = builder.create_node("ShaderNodeCombineXYZ", (1200, -500))
-        node_rot_vec.name = ParamapperNames.NODE_TEXT_ROTATION
+        node_rot_vec.name = PM.Nodes.TEXT_ROTATION
         node_rot_vec.inputs["X"].default_value = props.text_rotation[0]
         node_rot_vec.inputs["Y"].default_value = props.text_rotation[1]
         node_rot_vec.inputs["Z"].default_value = props.text_rotation[2]
@@ -240,7 +240,7 @@ class VisualBuilder:
     @staticmethod
     def instantiate_models(props, builder: GNTreeBuilder, base_points, scale_socket, mat):
         node_global_vec = builder.create_node("ShaderNodeCombineXYZ", (200, -100))
-        node_global_vec.name = ParamapperNames.NODE_GLOBAL_SCALE
+        node_global_vec.name = PM.Nodes.GLOBAL_SCALE
         node_global_vec.inputs["X"].default_value = props.global_scale
         node_global_vec.inputs["Y"].default_value = props.global_scale
         node_global_vec.inputs["Z"].default_value = props.global_scale
@@ -322,7 +322,7 @@ class VisualBuilder:
                 )
                 node_store.data_type = "FLOAT"
                 node_store.domain = "POINT"
-                node_store.inputs["Name"].default_value = ParamapperNames.COLOR_MAP_ATTR
+                node_store.inputs["Name"].default_value = PM.Attributes.COLOR_MAP
 
                 builder.link(current_geo, node_store.inputs["Geometry"])
                 builder.link(color_socket, node_store.inputs["Value"])
