@@ -111,9 +111,9 @@ class InfographicGenerator:
             self.props, builder, base_points, current_y
         )
 
-        mat = MaterialFactory.get_data_material(self.props, self.obj.name)
-        mat_text = MaterialFactory.get_text_material(self.props, self.obj.name)
-        mat_bbox = MaterialFactory.get_bbox_material(self.props, self.obj.name)
+        mat = MaterialFactory.get_data_material(self.obj.name)
+        mat_text = MaterialFactory.get_text_material(self.props.text_color, self.obj.name)
+        mat_bbox = MaterialFactory.get_bbox_material(self.props.bbox_color, self.obj.name)
 
         for mat_slot in (mat, mat_text, mat_bbox):
             if mat_slot.name not in self.obj.data.materials:

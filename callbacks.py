@@ -3,6 +3,7 @@ import math
 import bpy  # type: ignore
 
 from .constants import PM
+from .engine.materials import find_bsdf_and_set_color
 
 _numeric_cache = []
 _filter_cache = []
@@ -65,19 +66,11 @@ def apply_fast_updates(obj):
 
     mat_text = bpy.data.materials.get(f"{PM.Materials.TEXT}_{obj.name}")
     if mat_text and mat_text.use_nodes:
-        node_principled = next(
-            (n for n in mat_text.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None
-        )
-        if node_principled:
-            node_principled.inputs["Base Color"].default_value = props.text_color
+        find_bsdf_and_set_color(mat_text, props.text_color)
 
     mat_bbox = bpy.data.materials.get(f"{PM.Materials.BBOX}_{obj.name}")
     if mat_bbox and mat_bbox.use_nodes:
-        node_principled = next(
-            (n for n in mat_bbox.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None
-        )
-        if node_principled:
-            node_principled.inputs["Base Color"].default_value = props.bbox_color
+        find_bsdf_and_set_color(mat_bbox, props.bbox_color)
 
 
 def apply_filter_updates(obj):

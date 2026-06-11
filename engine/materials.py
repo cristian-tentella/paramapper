@@ -3,9 +3,15 @@ import bpy  # type: ignore
 from ..constants import PM
 
 
+def find_bsdf_and_set_color(mat, color):
+    node_principled = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+    if node_principled:
+        node_principled.inputs["Base Color"].default_value = color
+
+
 class MaterialFactory:
     @staticmethod
-    def get_data_material(props, obj_name: str) -> bpy.types.Material:
+    def get_data_material(obj_name: str) -> bpy.types.Material:
         mat_name = f"{PM.Materials.DATA}_{obj_name}"
         mat = bpy.data.materials.get(mat_name)
 
@@ -38,49 +44,24 @@ class MaterialFactory:
             links.new(node_ramp.outputs["Color"], node_principled.inputs["Base Color"])
             links.new(node_principled.outputs["BSDF"], node_output.inputs["Surface"])
 
-        nodes = mat.node_tree.nodes
-        node_ramp = nodes.get(PM.Nodes.COLOR_RAMP)
+        return mat
 
-        if not node_ramp:
-            for node in nodes:
-                if node.type == "VALTORGB":
-                    node_ramp = node
-                    node_ramp.name = PM.Nodes.COLOR_RAMP
-                    break
+    @staticmethod
+    def _get_material(material_name: str, color) -> bpy.types.Material:
+        mat = bpy.data.materials.get(material_name)
+
+        if not mat:
+            mat = bpy.data.materials.new(name=material_name)
+            mat.use_nodes = True
+
+        find_bsdf_and_set_color(mat, color)
 
         return mat
 
     @staticmethod
-    def get_text_material(props, obj_name: str) -> bpy.types.Material:
-        mat_name = f"{PM.Materials.TEXT}_{obj_name}"
-        mat = bpy.data.materials.get(mat_name)
-
-        if not mat:
-            mat = bpy.data.materials.new(name=mat_name)
-            mat.use_nodes = True
-
-        if mat.use_nodes:
-            node_principled = next(
-                (n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None
-            )
-            if node_principled:
-                node_principled.inputs["Base Color"].default_value = props.text_color
-        return mat
+    def get_text_material(text_color, obj_name: str) -> bpy.types.Material:
+        return MaterialFactory._get_material(f"{PM.Materials.TEXT}_{obj_name}", text_color)
 
     @staticmethod
-    def get_bbox_material(props, obj_name: str) -> bpy.types.Material:
-        mat_name = f"{PM.Materials.BBOX}_{obj_name}"
-        mat = bpy.data.materials.get(mat_name)
-
-        if not mat:
-            mat = bpy.data.materials.new(name=mat_name)
-            mat.use_nodes = True
-
-        if mat.use_nodes:
-            node_principled = next(
-                (n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None
-            )
-            if node_principled:
-                node_principled.inputs["Base Color"].default_value = props.bbox_color
-
-        return mat
+    def get_bbox_material(bbox_color, obj_name: str) -> bpy.types.Material:
+        return MaterialFactory._get_material(f"{PM.Materials.BBOX}_{obj_name}", bbox_color)
