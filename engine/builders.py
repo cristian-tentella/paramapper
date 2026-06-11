@@ -353,3 +353,72 @@ class VisualBuilder:
 
         builder.link(node_c2m.outputs[0], node_mat.inputs["Geometry"])
         return node_mat.outputs[0]
+
+
+class AnimationBuilder:
+    # Controls how much stagger exists between the first and last point appearing.
+    # At 0.95 the last point starts fading in when build_up reaches 0.95, not 1.0.
+    _STAGGER = 0.95
+    # Controls the sharpness of each point's fade-in transition.
+    _SHARPNESS = 20.0
+
+    @staticmethod
+    def apply_build_up(props, builder: GNTreeBuilder, main_geo, text_geo):
+        node_buildup = builder.create_node("ShaderNodeValue", (1200, 200))
+        node_buildup.name = PM.Nodes.BUILD_UP
+        node_buildup.outputs[0].default_value = props.build_up
+
+        node_count = builder.create_node("ShaderNodeValue", (1200, 0))
+        node_count.outputs[0].default_value = float(props.parsed_row_count)
+
+        node_index = builder.create_node("GeometryNodeInputIndex", (1200, -200))
+
+        node_div = builder.create_node("ShaderNodeMath", (1400, -100))
+        node_div.operation = "DIVIDE"
+        builder.link(node_index.outputs[0], node_div.inputs[0])
+        builder.link(node_count.outputs[0], node_div.inputs[1])
+
+        node_stagger = builder.create_node("ShaderNodeMath", (1400, -250))
+        node_stagger.operation = "MULTIPLY"
+        node_stagger.inputs[1].default_value = AnimationBuilder._STAGGER
+        builder.link(node_div.outputs[0], node_stagger.inputs[0])
+
+        node_sub = builder.create_node("ShaderNodeMath", (1600, 0))
+        node_sub.operation = "SUBTRACT"
+        builder.link(node_buildup.outputs[0], node_sub.inputs[0])
+        builder.link(node_stagger.outputs[0], node_sub.inputs[1])
+
+        node_sharpen = builder.create_node("ShaderNodeMath", (1600, -150))
+        node_sharpen.operation = "MULTIPLY"
+        node_sharpen.use_clamp = True
+        node_sharpen.inputs[1].default_value = AnimationBuilder._SHARPNESS
+        builder.link(node_sub.outputs[0], node_sharpen.inputs[0])
+
+        node_combine = builder.create_node("ShaderNodeCombineXYZ", (1700, -100))
+        builder.link(node_sharpen.outputs[0], node_combine.inputs[0])
+        builder.link(node_sharpen.outputs[0], node_combine.inputs[1])
+        builder.link(node_sharpen.outputs[0], node_combine.inputs[2])
+
+        node_scale_main = builder.create_node("GeometryNodeScaleInstances", (1800, 0))
+        builder.link(main_geo, node_scale_main.inputs[0])
+        builder.link(node_combine.outputs[0], node_scale_main.inputs["Scale"])
+        main_geo = node_scale_main.outputs[0]
+
+        node_radius_in = builder.create_node("GeometryNodeInputRadius", (1800, -150))
+        node_radius_mul = builder.create_node("ShaderNodeMath", (1800, -250))
+        node_radius_mul.operation = "MULTIPLY"
+        builder.link(node_radius_in.outputs[0], node_radius_mul.inputs[0])
+        builder.link(node_sharpen.outputs[0], node_radius_mul.inputs[1])
+
+        node_set_radius = builder.create_node("GeometryNodeSetPointRadius", (2000, 0))
+        builder.link(main_geo, node_set_radius.inputs[0])
+        builder.link(node_radius_mul.outputs[0], node_set_radius.inputs["Radius"])
+        main_geo = node_set_radius.outputs[0]
+
+        if text_geo:
+            node_scale_text = builder.create_node("GeometryNodeScaleInstances", (1800, -400))
+            builder.link(text_geo, node_scale_text.inputs[0])
+            builder.link(node_combine.outputs[0], node_scale_text.inputs["Scale"])
+            text_geo = node_scale_text.outputs[0]
+
+        return main_geo, text_geo
