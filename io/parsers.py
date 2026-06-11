@@ -161,17 +161,11 @@ class CSVParser(DataParser):
         return dialect
 
 
-class JSONParser(DataParser):
-    pass
-
-
 def get_parser(filepath: str) -> DataParser:
     file_extension = filepath.split(".")[-1].lower()
 
     match file_extension:
         case "csv":
             return CSVParser(filepath)
-        case "json":
-            return JSONParser(filepath)
         case _:
             raise ValueError(f"Files with .{file_extension} extension are not supported")
