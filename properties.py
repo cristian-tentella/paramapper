@@ -51,6 +51,9 @@ class PARAMAPPER_PG_FilterItem(bpy.types.PropertyGroup):
 
 class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
     def reset_to_defaults(self):
+        # Column mappings are dataset-specific and must be cleared when loading a new dataset.
+        # Visual properties (bounds, scale, colors, text) are intentionally preserved.
+
         self.filters.clear()
         self.active_filter_index = 0
 

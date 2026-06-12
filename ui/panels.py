@@ -133,7 +133,7 @@ class PARAMAPPER_PT_filters(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         obj = context.active_object
-        return obj and obj.paramapper.dataset_has_been_parsed
+        return obj and obj.type == "MESH" and obj.paramapper.dataset_has_been_parsed
 
     def draw(self, context):
         layout = self.layout
@@ -210,12 +210,12 @@ class PARAMAPPER_PT_visuals(bpy.types.Panel):
             if props.map_color != "NONE":
                 mat_name = f"{PM.Materials.DATA}_{obj.name}"
                 mat = bpy.data.materials.get(mat_name)
-                if mat and mat.use_nodes:
-                    node_ramp = mat.node_tree.nodes.get(PM.Nodes.COLOR_RAMP)
-                    if node_ramp:
-                        box_ramp = layout.box()
-                        box_ramp.template_color_ramp(node_ramp, "color_ramp", expand=True)
-                    else:
-                        layout.label(text="Generate to edit Color Ramp", icon="INFO")
+                node_ramp = (
+                    mat.node_tree.nodes.get(PM.Nodes.COLOR_RAMP) if mat and mat.use_nodes else None
+                )
+
+                if node_ramp:
+                    box_ramp = layout.box()
+                    box_ramp.template_color_ramp(node_ramp, "color_ramp", expand=True)
                 else:
                     layout.label(text="Generate to edit Color Ramp", icon="INFO")
