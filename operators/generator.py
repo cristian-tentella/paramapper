@@ -69,8 +69,8 @@ class PARAMAPPER_OT_generate_nodes(bpy.types.Operator):
             return {"CANCELLED"}
 
         try:
-            base, ext = os.path.splitext(abs_path)
-            sanitized_path = f"{base}_bl51_ready{ext}"
+            _, ext = os.path.splitext(abs_path)
+            sanitized_path = f"{bpy.app.tempdir}_sanitized{ext}"
 
             parser = get_parser(abs_path)
             parser.create_sanitized_copy(props.columns, sanitized_path)

@@ -59,9 +59,9 @@ class PARAMAPPER_OT_parse_dataset(bpy.types.Operator):
                 new_col.data_type = data.data_type
                 new_col.min_val = data.min_val if data.min_val is not None else 0.0
                 new_col.max_val = data.max_val if data.max_val is not None else 0.0
-                new_col.unique_tokens = data.tokens if data.tokens is not None else ""
+                new_col.unique_tokens = data.unique_tokens if data.unique_tokens is not None else ""
 
-        except Exception as e:
+        except (FileNotFoundError, ValueError) as e:
             self.report({"ERROR"}, f"Dataset parsing error: {str(e)}")
             return {"CANCELLED"}
 

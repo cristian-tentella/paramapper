@@ -12,7 +12,7 @@ class ColumnMetadata:
     data_type: str
     min_val: Optional[float] = None
     max_val: Optional[float] = None
-    tokens: Optional[str] = None
+    unique_tokens: Optional[str] = None
 
 
 class DataParser(ABC):
@@ -41,6 +41,10 @@ class CSVParser(DataParser):
         if not self.filepath.lower().endswith(".csv"):
             raise ValueError(f"Invalid format, expected .csv, received {self.filepath}")
 
+    @staticmethod
+    def _normalize_row(row, length):
+        return (row + [""] * (length - len(row)))[:length]
+
     def extract_metadata(self) -> dict[str, dict[str, Any]]:
         with open(self.filepath, mode="r", encoding="utf-8") as f:
             dialect = self._sniff_dialect(f)
@@ -52,7 +56,11 @@ class CSVParser(DataParser):
             if not self.headers:
                 raise ValueError("CSV file is empty or void of headers")
 
-            rows = [row for row in reader if row and any(cell.strip() for cell in row)]
+            rows = [
+                CSVParser._normalize_row(row, len(self.headers))
+                for row in reader
+                if row and any(cell.strip() for cell in row)
+            ]
             self.row_count = len(rows)
 
         matrix = np.array(rows, dtype=str)
@@ -74,7 +82,7 @@ class CSVParser(DataParser):
                     data_type="NUMERIC",
                     min_val=float(np.min(numeric_values)),
                     max_val=float(np.max(numeric_values)),
-                    tokens=None,
+                    unique_tokens=None,
                 )
             except ValueError:
                 try:
@@ -85,7 +93,7 @@ class CSVParser(DataParser):
                         data_type="DATETIME",
                         min_val=float(np.min(timestamps)),
                         max_val=float(np.max(timestamps)),
-                        tokens=None,
+                        unique_tokens=None,
                     )
                 except ValueError:
                     unique_tokens = np.unique(col_data)
@@ -93,7 +101,7 @@ class CSVParser(DataParser):
                         data_type="CATEGORICAL",
                         min_val=None,
                         max_val=None,
-                        tokens="\n".join(unique_tokens),
+                        unique_tokens="\n".join(unique_tokens),
                     )
 
         return metadata
