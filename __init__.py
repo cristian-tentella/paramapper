@@ -21,16 +21,6 @@ from .callbacks import (
 )
 from .properties import PARAMAPPER_PG_Settings
 
-bl_info = {
-    "name": "Paramapper",
-    "author": "Cristian Tentella",
-    "description": "",
-    "blender": (5, 0, 0),
-    "version": (0, 7, 0),
-    "location": "View3D > Sidebar > Paramapper",
-    "category": "3D View",
-}
-
 auto_load.init()
 
 _timers = [paramapper_rebuild_timer, paramapper_scale_sync_timer]

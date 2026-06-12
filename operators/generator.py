@@ -6,7 +6,7 @@ from bpy_extras.object_utils import object_data_add  # type: ignore
 
 from ..constants import PM
 from ..engine.generator import InfographicGenerator
-from ..io.parsers import get_parser  # type: ignore
+from ..io.parsers import get_parser
 
 
 class PARAMAPPER_OT_create_object(bpy.types.Operator):
@@ -70,7 +70,7 @@ class PARAMAPPER_OT_generate_nodes(bpy.types.Operator):
 
         try:
             _, ext = os.path.splitext(abs_path)
-            sanitized_path = f"{bpy.app.tempdir}_sanitized{ext}"
+            sanitized_path = os.path.join(bpy.app.tempdir, f"paramapper_sanitized{ext}")
 
             parser = get_parser(abs_path)
             parser.create_sanitized_copy(props.columns, sanitized_path)

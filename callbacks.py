@@ -5,9 +5,6 @@ import bpy  # type: ignore
 from .constants import PM
 from .engine.materials import find_bsdf_and_set_color
 
-_numeric_cache = []
-_filter_cache = []
-
 
 def update_infographic(self, context):
     obj = context.active_object
@@ -161,8 +158,6 @@ def paramapper_scale_sync_timer():
 
 
 def get_numeric_columns(self, context) -> list[tuple[str, str, str]]:
-    global _numeric_cache
-
     items: list[tuple[str, str, str]] = [("NONE", "None", "Disable mapping for this axis")]
 
     for col in self.columns:
@@ -174,7 +169,6 @@ def get_numeric_columns(self, context) -> list[tuple[str, str, str]]:
                 tooltip = f"Map the datetime column {col.name}"
                 items.append((col.name, f"{col.name} (Datetime)", tooltip))
 
-    _numeric_cache = items
     return items
 
 
@@ -188,8 +182,6 @@ def get_categorical_columns(self, context) -> list[tuple[str, str, str]]:
 
 
 def get_filter_columns(self, context):
-    global _filter_cache
-
     obj = context.active_object
     if not obj or not hasattr(obj, "paramapper"):
         return [("NONE", "None", "")]
@@ -200,5 +192,4 @@ def get_filter_columns(self, context):
             tooltip = f"Filter by {col.name} (Min: {col.min_val:.2f}, Max: {col.max_val:.2f})"
             items.append((col.name, col.name, tooltip))
 
-    _filter_cache = items
     return items
