@@ -85,6 +85,10 @@ class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
         default=True,
     )
 
+    needs_rebuild: bpy.props.BoolProperty(  # type: ignore
+        name="Needs Rebuild", default=False
+    )
+
     global_scale: bpy.props.FloatProperty(  # type: ignore
         name="Global Scale", default=1.0, min=0.01, update=update_fast
     )

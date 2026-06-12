@@ -19,10 +19,7 @@ def update_infographic(self, context):
     if not props.auto_update or not props.dataset_has_been_parsed:
         return
 
-    try:
-        bpy.ops.paramapper.generate_nodes("INVOKE_DEFAULT")
-    except RuntimeError:
-        pass
+    props.needs_rebuild = True
 
 
 def apply_fast_updates(obj):
@@ -107,6 +104,22 @@ def paramapper_frame_handler(scene):
             if obj.paramapper.auto_update and obj.paramapper.dataset_has_been_parsed:
                 apply_fast_updates(obj)
                 apply_filter_updates(obj)
+
+
+def paramapper_rebuild_timer():
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH" or not hasattr(obj, "paramapper"):
+            continue
+
+        props = obj.paramapper
+
+        if not props.needs_rebuild:
+            continue
+
+        props.needs_rebuild = False
+        bpy.ops.paramapper.generate_nodes("INVOKE_DEFAULT")
+
+    return 0.1
 
 
 def paramapper_scale_sync_timer():

@@ -14,7 +14,11 @@
 import bpy  # type: ignore
 
 from . import auto_load
-from .callbacks import paramapper_frame_handler, paramapper_scale_sync_timer
+from .callbacks import (
+    paramapper_frame_handler,
+    paramapper_rebuild_timer,
+    paramapper_scale_sync_timer,
+)
 from .properties import PARAMAPPER_PG_Settings
 
 bl_info = {
@@ -29,6 +33,8 @@ bl_info = {
 
 auto_load.init()
 
+_timers = [paramapper_rebuild_timer, paramapper_scale_sync_timer]
+
 
 def register():
     auto_load.register()
@@ -37,17 +43,19 @@ def register():
 
     if paramapper_frame_handler not in bpy.app.handlers.frame_change_post:
         bpy.app.handlers.frame_change_post.append(paramapper_frame_handler)
-        
-    if not bpy.app.timers.is_registered(paramapper_scale_sync_timer):
-        bpy.app.timers.register(paramapper_scale_sync_timer)
+
+    for timer in _timers:
+        if not bpy.app.timers.is_registered(timer):
+            bpy.app.timers.register(timer)
 
 
 def unregister():
     if paramapper_frame_handler in bpy.app.handlers.frame_change_post:
         bpy.app.handlers.frame_change_post.remove(paramapper_frame_handler)
 
-    if bpy.app.timers.is_registered(paramapper_scale_sync_timer):
-        bpy.app.timers.unregister(paramapper_scale_sync_timer)
+    for timer in _timers:
+        if bpy.app.timers.is_registered(timer):
+            bpy.app.timers.unregister(timer)
 
     del bpy.types.Object.paramapper
     auto_load.unregister()
