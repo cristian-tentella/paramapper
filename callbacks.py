@@ -6,12 +6,18 @@ from .constants import PM
 from .engine.materials import find_bsdf_and_set_color
 
 
-def update_infographic(self, context):
-    obj = context.active_object
-    if not obj or not hasattr(obj, "paramapper"):
-        return
+def _get_props(context: bpy.types.Context):
+    active_object = context.active_object
 
-    props = obj.paramapper
+    if not active_object or active_object.type != "MESH":
+        return None
+
+    return active_object.paramapper
+
+
+def update_infographic(_, context: bpy.types.Context):
+    if not (props := _get_props(context)):
+        return
 
     if not props.auto_update or not props.dataset_has_been_parsed:
         return
@@ -19,8 +25,7 @@ def update_infographic(self, context):
     props.needs_rebuild = True
 
 
-def apply_fast_updates(obj):
-    props = obj.paramapper
+def apply_fast_updates(props, obj: bpy.types.Object):
     modifier = obj.modifiers.get(PM.Objects.MODIFIER)
     if not modifier or not modifier.node_group:
         return
@@ -67,7 +72,7 @@ def apply_fast_updates(obj):
         find_bsdf_and_set_color(mat_bbox, props.bbox_color)
 
 
-def apply_filter_updates(obj):
+def apply_filter_updates(obj: bpy.types.Object):
     mod = obj.modifiers.get(PM.Objects.MODIFIER)
     if not mod or not mod.node_group:
         return
@@ -78,20 +83,24 @@ def apply_filter_updates(obj):
             n_val.outputs[0].default_value = f.value
 
 
-def update_fast(self, context):
-    obj = context.active_object
-    if not obj or obj.type != "MESH" or not hasattr(obj, "paramapper"):
+def update_fast(_, context: bpy.types.Context):
+    if not (props := _get_props(context)):
         return
-    if not obj.paramapper.auto_update or not obj.paramapper.dataset_has_been_parsed:
+
+    if not props.auto_update or not props.dataset_has_been_parsed:
         return
-    apply_fast_updates(obj)
+
+    apply_fast_updates(props, context.active_object)
 
 
-def update_fast_filters(self, context):
-    obj = context.active_object
-    if not obj or not hasattr(obj, "paramapper") or not obj.paramapper.dataset_has_been_parsed:
+def update_fast_filters(_, context: bpy.types.Context):
+    if not (props := _get_props(context)):
         return
-    apply_filter_updates(obj)
+
+    if not props.dataset_has_been_parsed:
+        return
+
+    apply_filter_updates(context.active_object)
 
 
 @bpy.app.handlers.persistent
@@ -99,7 +108,7 @@ def paramapper_frame_handler(scene):
     for obj in scene.objects:
         if obj.type == "MESH" and hasattr(obj, "paramapper"):
             if obj.paramapper.auto_update and obj.paramapper.dataset_has_been_parsed:
-                apply_fast_updates(obj)
+                apply_fast_updates(obj.paramapper, obj)
                 apply_filter_updates(obj)
 
 
@@ -157,7 +166,7 @@ def paramapper_scale_sync_timer():
     return 0.1
 
 
-def get_numeric_columns(self, context) -> list[tuple[str, str, str]]:
+def get_numeric_columns(self, context: bpy.types.Context) -> list[tuple[str, str, str]]:
     items: list[tuple[str, str, str]] = [("NONE", "None", "Disable mapping for this axis")]
 
     for col in self.columns:
@@ -172,7 +181,7 @@ def get_numeric_columns(self, context) -> list[tuple[str, str, str]]:
     return items
 
 
-def get_categorical_columns(self, context) -> list[tuple[str, str, str]]:
+def get_categorical_columns(self, context: bpy.types.Context) -> list[tuple[str, str, str]]:
     items: list[tuple[str, str, str]] = [("NONE", "None", "No text tag")]
 
     for col in self.columns:
@@ -181,13 +190,13 @@ def get_categorical_columns(self, context) -> list[tuple[str, str, str]]:
     return items
 
 
-def get_filter_columns(self, context):
-    obj = context.active_object
-    if not obj or not hasattr(obj, "paramapper"):
+def get_filter_columns(self, context: bpy.types.Context):
+    if not (props := _get_props(context)):
         return [("NONE", "None", "")]
 
     items = [("NONE", "Select column...", "")]
-    for col in obj.paramapper.columns:
+
+    for col in props.columns:
         if col.data_type == "NUMERIC":
             tooltip = f"Filter by {col.name} (Min: {col.min_val:.2f}, Max: {col.max_val:.2f})"
             items.append((col.name, col.name, tooltip))
