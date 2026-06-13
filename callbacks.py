@@ -97,7 +97,7 @@ def update_fast_filters(_, context: bpy.types.Context):
     if not (props := _get_props(context)):
         return
 
-    if not props.dataset_has_been_parsed:
+    if not props.auto_update or not props.dataset_has_been_parsed:
         return
 
     apply_filter_updates(context.active_object)
