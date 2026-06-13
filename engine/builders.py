@@ -315,7 +315,7 @@ class VisualBuilder:
 
     @staticmethod
     def map_color(props, builder: GNTreeBuilder, current_geo, current_y: int):
-        if props.map_color:
+        if props.map_color != "NONE":
             col_meta = props.columns.get(props.map_color)
             if col_meta:
                 color_socket = builder.create_mapped_attribute(
