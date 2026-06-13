@@ -245,7 +245,7 @@ class VisualBuilder:
 
         node_base_reduction = builder.create_node("ShaderNodeVectorMath", (400, -100))
         node_base_reduction.operation = "MULTIPLY"
-        node_base_reduction.inputs[1].default_value = (0.2, 0.2, 0.2)
+        node_base_reduction.inputs[1].default_value = (VisualBuilder._BASE_REDUCTION,) * 3
 
         builder.link(node_global_vec.outputs[0], node_base_reduction.inputs[0])
 
