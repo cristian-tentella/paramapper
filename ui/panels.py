@@ -174,8 +174,12 @@ class PARAMAPPER_PT_visuals(bpy.types.Panel):
 
         col_model = layout.column(align=True)
         col_model.prop(props, "instance_object", text="Instance Model")
+
         if props.instance_object:
             col_model.prop(props, "override_material")
+            hint = col_model.row()
+            hint.active = False
+            hint.label(text="Set origin to geometry for correct positioning", icon="INFO")
 
         layout.separator()
 
