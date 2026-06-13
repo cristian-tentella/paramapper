@@ -137,6 +137,8 @@ class FilterBuilder:
 
 
 class VisualBuilder:
+    _BASE_REDUCTION = 0.2
+
     @staticmethod
     def instantiate_labels(props, builder: GNTreeBuilder, base_points, mat_text):
         def _build_text_instances(
@@ -234,7 +236,7 @@ class VisualBuilder:
         return node_set_mat.outputs[0]
 
     @staticmethod
-    def instantiate_object_models(props, builder: GNTreeBuilder, base_points, scale_socket, mat):
+    def _build_global_scale_node(props, builder: GNTreeBuilder):
         node_global_vec = builder.create_node("ShaderNodeCombineXYZ", (200, -100))
         node_global_vec.name = PM.Nodes.GLOBAL_SCALE
         node_global_vec.inputs["X"].default_value = props.global_scale
@@ -246,6 +248,12 @@ class VisualBuilder:
         node_base_reduction.inputs[1].default_value = (0.2, 0.2, 0.2)
 
         builder.link(node_global_vec.outputs[0], node_base_reduction.inputs[0])
+
+        return node_base_reduction.outputs[0]
+
+    @staticmethod
+    def instantiate_object_models(props, builder: GNTreeBuilder, base_points, scale_socket, mat):
+        reduction_node_output = VisualBuilder._build_global_scale_node(props, builder)
 
         node_src = builder.create_node("GeometryNodeObjectInfo", (400, 200))
         node_src.inputs["Object"].default_value = props.instance_object
@@ -260,10 +268,10 @@ class VisualBuilder:
             node_math_scale = builder.create_node("ShaderNodeVectorMath", (600, -100))
             node_math_scale.operation = "MULTIPLY"
             builder.link(scale_socket, node_math_scale.inputs[0])
-            builder.link(node_base_reduction.outputs[0], node_math_scale.inputs[1])
+            builder.link(reduction_node_output, node_math_scale.inputs[1])
             builder.link(node_math_scale.outputs["Vector"], node_inst.inputs["Scale"])
         else:
-            builder.link(node_base_reduction.outputs[0], node_inst.inputs["Scale"])
+            builder.link(reduction_node_output, node_inst.inputs["Scale"])
 
         current_geo = node_inst.outputs[0]
 
@@ -278,20 +286,10 @@ class VisualBuilder:
 
     @staticmethod
     def instantiate_point_models(props, builder: GNTreeBuilder, base_points, scale_socket, mat):
-        node_global_vec = builder.create_node("ShaderNodeCombineXYZ", (200, -100))
-        node_global_vec.name = PM.Nodes.GLOBAL_SCALE
-        node_global_vec.inputs["X"].default_value = props.global_scale
-        node_global_vec.inputs["Y"].default_value = props.global_scale
-        node_global_vec.inputs["Z"].default_value = props.global_scale
-
-        node_base_reduction = builder.create_node("ShaderNodeVectorMath", (400, -100))
-        node_base_reduction.operation = "MULTIPLY"
-        node_base_reduction.inputs[1].default_value = (0.2, 0.2, 0.2)
-
-        builder.link(node_global_vec.outputs[0], node_base_reduction.inputs[0])
+        reduction_node_output = VisualBuilder._build_global_scale_node(props, builder)
 
         node_sep_xyz = builder.create_node("ShaderNodeSeparateXYZ", (600, -200))
-        builder.link(node_base_reduction.outputs[0], node_sep_xyz.inputs[0])
+        builder.link(reduction_node_output, node_sep_xyz.inputs[0])
 
         node_radius_math = builder.create_node("ShaderNodeMath", (800, -100))
         node_radius_math.operation = "MULTIPLY"
