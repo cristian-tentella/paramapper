@@ -40,7 +40,11 @@ class InfographicGenerator:
 
         node_bbox_scale = builder.create_node("ShaderNodeVectorMath", (-400, 350))
         node_bbox_scale.operation = "DIVIDE"
-        node_bbox_scale.inputs[1].default_value = (10.0, 10.0, 10.0)
+        node_bbox_scale.inputs[1].default_value = (
+            PM.Objects.BASE_SIZE,
+            PM.Objects.BASE_SIZE,
+            PM.Objects.BASE_SIZE,
+        )
 
         builder.link(node_combine_scale.outputs[0], node_bbox_scale.inputs[0])
         builder.link(node_bbox_scale.outputs["Vector"], node_transform_base.inputs["Scale"])

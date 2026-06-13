@@ -1,5 +1,6 @@
 class PM:
     class Objects:
+        BASE_SIZE = 10.0
         CONTAINER = "ParamapperInfographic"
         MESH = "ParamapperCloudData"
         MODIFIER = "ParamapperGraph"

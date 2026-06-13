@@ -17,15 +17,17 @@ class PARAMAPPER_OT_create_object(bpy.types.Operator):
     def execute(self, context):
         mesh_data = bpy.data.meshes.new(PM.Objects.MESH)
 
+        bs = PM.Objects.BASE_SIZE
+
         verts = [
             (0.0, 0.0, 0.0),
-            (10.0, 0.0, 0.0),
-            (10.0, 10.0, 0.0),
-            (0.0, 10.0, 0.0),
-            (0.0, 0.0, 10.0),
-            (10.0, 0.0, 10.0),
-            (10.0, 10.0, 10.0),
-            (0.0, 10.0, 10.0),
+            (bs, 0.0, 0.0),
+            (bs, bs, 0.0),
+            (0.0, bs, 0.0),
+            (0.0, 0.0, bs),
+            (bs, 0.0, bs),
+            (bs, bs, bs),
+            (0.0, bs, bs),
         ]
         edges = [
             (0, 1),

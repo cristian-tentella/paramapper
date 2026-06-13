@@ -8,6 +8,7 @@ from .callbacks import (
     update_fast_filters,
     update_infographic,
 )
+from .constants import PM
 
 
 class PARAMAPPER_PG_ColumnMeta(bpy.types.PropertyGroup):
@@ -133,7 +134,7 @@ class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
         name="Dimensions",
         subtype="XYZ",
         unit="LENGTH",
-        default=(10.0, 10.0, 10.0),
+        default=(PM.Objects.BASE_SIZE, PM.Objects.BASE_SIZE, PM.Objects.BASE_SIZE),
         size=3,
         min=0.01,
         update=update_fast,
