@@ -46,11 +46,7 @@ class SpatialBuilder:
                     to_max=1.0,
                     location=(-400, current_y),
                 )
-                node_set_radius = builder.create_node("GeometryNodeSetPointRadius", (400, 0))
-                builder.link(scale_socket, node_set_radius.inputs["Radius"])
-                builder.link(current_geo, node_set_radius.inputs[0])
 
-                current_geo = node_set_radius.outputs[0]
                 current_y -= 250
 
         return current_geo, scale_socket, current_y
