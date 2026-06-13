@@ -119,9 +119,15 @@ class InfographicGenerator:
             if mat_slot.name not in self.obj.data.materials:
                 self.obj.data.materials.append(mat_slot)
 
-        main_geo = VisualBuilder.instantiate_models(
-            self.props, builder, base_points, scale_socket, mat
-        )
+        if self.props.instance_object:
+            main_geo = VisualBuilder.instantiate_object_models(
+                self.props, builder, base_points, scale_socket, mat
+            )
+        else:
+            main_geo = VisualBuilder.instantiate_point_models(
+                self.props, builder, base_points, scale_socket, mat
+            )
+
         text_geo = VisualBuilder.instantiate_labels(self.props, builder, base_points, mat_text)
 
         main_geo, text_geo = AnimationBuilder.apply_build_up(
