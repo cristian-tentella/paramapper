@@ -1,9 +1,19 @@
+from dataclasses import dataclass
+
 import bpy  # type: ignore
 
 from ..constants import PM
 from .builders import AnimationBuilder, FilterBuilder, SpatialBuilder, VisualBuilder
 from .materials import MaterialFactory
 from .utils import GNTreeBuilder
+
+
+@dataclass
+class _BaseNodes:
+    node_output: bpy.types.Node
+    node_set_pos: bpy.types.Node
+    node_combine_xyz: bpy.types.Node
+    limits_geo: bpy.types.NodeSocket
 
 
 class InfographicGenerator:
@@ -24,7 +34,7 @@ class InfographicGenerator:
         modifier.node_group = ntree
         return ntree
 
-    def _create_base_nodes(self, builder: GNTreeBuilder, sanitized_csv_path: str):
+    def _create_base_nodes(self, builder: GNTreeBuilder, sanitized_csv_path: str) -> _BaseNodes:
         builder.tree.interface.new_socket(
             name="Geometry", in_out="INPUT", socket_type="NodeSocketGeometry"
         )
@@ -74,7 +84,7 @@ class InfographicGenerator:
 
         builder.link(node_vec_math.outputs["Vector"], node_set_pos.inputs["Position"])
 
-        return node_output, node_set_pos, node_combine_xyz, limits_geo
+        return _BaseNodes(node_output, node_set_pos, node_combine_xyz, limits_geo)
 
     def _join_and_output(self, builder: GNTreeBuilder, main_geo, text_geo, bbox_geo, node_output):
         geos = [main_geo]
@@ -96,14 +106,12 @@ class InfographicGenerator:
 
         builder = GNTreeBuilder(ntree)
 
-        node_output, node_set_pos, node_combine_xyz, limits_geo = self._create_base_nodes(
-            builder, sanitized_csv_path
-        )
+        base: _BaseNodes = self._create_base_nodes(builder, sanitized_csv_path)
 
-        current_y = SpatialBuilder.map_axes(self.props, builder, node_combine_xyz)
+        current_y = SpatialBuilder.map_axes(self.props, builder, base.node_combine_xyz)
 
         base_points, current_y = FilterBuilder.apply_culling(
-            self.props, builder, node_set_pos.outputs[0], current_y
+            self.props, builder, base.node_set_pos.outputs[0], current_y
         )
         base_points, current_y = FilterBuilder.apply_auto_fit(
             self.props, builder, base_points, current_y
@@ -138,9 +146,9 @@ class InfographicGenerator:
             self.props, builder, main_geo, text_geo
         )
 
-        bbox_geo = VisualBuilder.add_bounding_box(self.props, builder, limits_geo, mat_bbox)
+        bbox_geo = VisualBuilder.add_bounding_box(self.props, builder, base.limits_geo, mat_bbox)
 
-        self._join_and_output(builder, main_geo, text_geo, bbox_geo, node_output)
+        self._join_and_output(builder, main_geo, text_geo, bbox_geo, base.node_output)
 
         try:
             bpy.ops.object.select_all(action="DESELECT")
