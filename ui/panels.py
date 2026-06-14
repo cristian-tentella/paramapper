@@ -196,9 +196,7 @@ class PARAMAPPER_PT_visuals(bpy.types.Panel, PARAMAPPER_PT_parsed_base):
 
         layout.separator()
 
-        show_color_ui = (not props.instance_object) or (
-            props.instance_object and props.override_material
-        )
+        show_color_ui = not props.instance_object or props.override_material
 
         if show_color_ui:
             layout.prop(props, "map_color", text="Color")
