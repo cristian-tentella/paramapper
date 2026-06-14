@@ -140,43 +140,42 @@ class VisualBuilder:
     _BASE_REDUCTION = 0.2
 
     @staticmethod
+    def _build_text_geometry(
+        props, builder: GNTreeBuilder, tokens: list[str]
+    ) -> bpy.types.NodeSocket:
+        node_geo_to_inst = builder.create_node("GeometryNodeGeometryToInstance", (800, -400))
+
+        for i, token in enumerate(tokens):
+            node_str = builder.create_node("GeometryNodeStringToCurves", (0, -400 - (i * 250)))
+            node_str.inputs["String"].default_value = token
+
+            node_fill = builder.create_node("GeometryNodeFillCurve", (200, -400 - (i * 250)))
+            builder.link(node_str.outputs[0], node_fill.inputs[0])
+
+            if props.text_thickness > 0.0:
+                node_extrude = builder.create_node(
+                    "GeometryNodeExtrudeMesh", (400, -400 - (i * 250))
+                )
+                node_extrude.inputs["Offset Scale"].default_value = props.text_thickness
+
+                node_flip = builder.create_node("GeometryNodeFlipFaces", (400, -550 - (i * 250)))
+                node_join_cap = builder.create_node(
+                    "GeometryNodeJoinGeometry", (600, -400 - (i * 250))
+                )
+
+                builder.link(node_fill.outputs[0], node_flip.inputs[0])
+                builder.link(node_flip.outputs[0], node_join_cap.inputs[0])
+                builder.link(node_fill.outputs[0], node_extrude.inputs["Mesh"])
+                builder.link(node_extrude.outputs["Mesh"], node_join_cap.inputs[0])
+
+                builder.link(node_join_cap.outputs[0], node_geo_to_inst.inputs[0])
+            else:
+                builder.link(node_fill.outputs[0], node_geo_to_inst.inputs[0])
+
+        return node_geo_to_inst.outputs[0]
+
+    @staticmethod
     def instantiate_labels(props, builder: GNTreeBuilder, base_points, mat_text):
-        def _build_text_instances(
-            props, builder: GNTreeBuilder, tokens: list[str]
-        ) -> bpy.types.NodeSocket:
-            node_geo_to_inst = builder.create_node("GeometryNodeGeometryToInstance", (800, -400))
-
-            for i, token in enumerate(tokens):
-                node_str = builder.create_node("GeometryNodeStringToCurves", (0, -400 - (i * 250)))
-                node_str.inputs["String"].default_value = token
-
-                node_fill = builder.create_node("GeometryNodeFillCurve", (200, -400 - (i * 250)))
-                builder.link(node_str.outputs[0], node_fill.inputs[0])
-
-                if props.text_thickness > 0.0:
-                    node_extrude = builder.create_node(
-                        "GeometryNodeExtrudeMesh", (400, -400 - (i * 250))
-                    )
-                    node_extrude.inputs["Offset Scale"].default_value = props.text_thickness
-
-                    node_flip = builder.create_node(
-                        "GeometryNodeFlipFaces", (400, -550 - (i * 250))
-                    )
-                    node_join_cap = builder.create_node(
-                        "GeometryNodeJoinGeometry", (600, -400 - (i * 250))
-                    )
-
-                    builder.link(node_fill.outputs[0], node_flip.inputs[0])
-                    builder.link(node_flip.outputs[0], node_join_cap.inputs[0])
-                    builder.link(node_fill.outputs[0], node_extrude.inputs["Mesh"])
-                    builder.link(node_extrude.outputs["Mesh"], node_join_cap.inputs[0])
-
-                    builder.link(node_join_cap.outputs[0], node_geo_to_inst.inputs[0])
-                else:
-                    builder.link(node_fill.outputs[0], node_geo_to_inst.inputs[0])
-
-            return node_geo_to_inst.outputs[0]
-
         if props.map_text == "NONE":
             return None
 
@@ -186,7 +185,7 @@ class VisualBuilder:
 
         tokens = col_meta.unique_tokens.split("\n")
 
-        instances_socket = _build_text_instances(props, builder, tokens)
+        instances_socket = VisualBuilder._build_text_instances(props, builder, tokens)
 
         node_text_attr = builder.create_node(
             "GeometryNodeInputNamedAttribute", (800, -600), data_type="FLOAT"
@@ -238,6 +237,7 @@ class VisualBuilder:
     @staticmethod
     def _build_global_scale_node(props, builder: GNTreeBuilder):
         node_global_vec = builder.create_node("ShaderNodeCombineXYZ", (200, -100))
+        # Unique per build: generator.py if/else guarantees only one instantiate path runs.
         node_global_vec.name = PM.Nodes.GLOBAL_SCALE
         node_global_vec.inputs["X"].default_value = props.global_scale
         node_global_vec.inputs["Y"].default_value = props.global_scale
