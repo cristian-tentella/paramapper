@@ -128,6 +128,14 @@ def paramapper_rebuild_timer():
     return 0.1
 
 
+def _vec_isclose(a, b, abs_tol: float) -> bool:
+    return (
+        math.isclose(a[0], b[0], abs_tol)
+        and math.isclose(a[1], b[1], abs_tol)
+        and math.isclose(a[2], b[2], abs_tol)
+    )
+
+
 def paramapper_scale_sync_timer():
     for obj in bpy.context.scene.objects:
         if obj.type == "MESH":
@@ -137,21 +145,13 @@ def paramapper_scale_sync_timer():
 
             scale = obj.scale
 
-            if (
-                math.isclose(scale[0], 1.0, abs_tol=1e-4)
-                and math.isclose(scale[1], 1.0, abs_tol=1e-4)
-                and math.isclose(scale[2], 1.0, abs_tol=1e-4)
-            ):
+            if _vec_isclose(scale, (1.0, 1.0, 1.0), 1e-4):
                 obj[PM.Keys.LAST_SCALE] = [1.0, 1.0, 1.0]
                 continue
 
             last_scale = obj.get(PM.Keys.LAST_SCALE, [0.0, 0.0, 0.0])
 
-            if (
-                math.isclose(scale[0], last_scale[0], abs_tol=1e-5)
-                and math.isclose(scale[1], last_scale[1], abs_tol=1e-5)
-                and math.isclose(scale[2], last_scale[2], abs_tol=1e-5)
-            ):
+            if _vec_isclose(scale, last_scale, 1e-5):
                 props.bounds_size = (
                     max(0.01, props.bounds_size[0] * scale[0]),
                     max(0.01, props.bounds_size[1] * scale[1]),
