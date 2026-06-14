@@ -69,18 +69,20 @@ class PARAMAPPER_PT_dataset(bpy.types.Panel):
             col_info.label(text=f"Valid Columns: {len(props.columns)}", icon="SPREADSHEET")
 
 
-class PARAMAPPER_PT_spatial(bpy.types.Panel):
+class PARAMAPPER_PT_parsed_base:
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        return obj and obj.type == "MESH" and obj.paramapper.dataset_has_been_parsed
+
+
+class PARAMAPPER_PT_spatial(bpy.types.Panel, PARAMAPPER_PT_parsed_base):
     bl_idname = "PARAMAPPER_PT_spatial"
     bl_parent_id = "PARAMAPPER_PT_main"
     bl_label = "Spatial Mapping"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_order = 20
-
-    @classmethod
-    def poll(cls, context):
-        obj = context.active_object
-        return obj and obj.type == "MESH" and obj.paramapper.dataset_has_been_parsed
 
     def draw(self, context):
         layout = self.layout
@@ -122,18 +124,13 @@ class PARAMAPPER_PT_spatial(bpy.types.Panel):
         col_mult.prop(props, "global_scale", text="Items Base Size")
 
 
-class PARAMAPPER_PT_filters(bpy.types.Panel):
+class PARAMAPPER_PT_filters(bpy.types.Panel, PARAMAPPER_PT_parsed_base):
     bl_idname = "PARAMAPPER_PT_filters"
     bl_parent_id = "PARAMAPPER_PT_main"
     bl_label = "Data Filtering"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_order = 30
-
-    @classmethod
-    def poll(cls, context):
-        obj = context.active_object
-        return obj and obj.type == "MESH" and obj.paramapper.dataset_has_been_parsed
 
     def draw(self, context):
         layout = self.layout
@@ -149,18 +146,13 @@ class PARAMAPPER_PT_filters(bpy.types.Panel):
         col.operator("paramapper.remove_filter", icon="REMOVE", text="")
 
 
-class PARAMAPPER_PT_visuals(bpy.types.Panel):
+class PARAMAPPER_PT_visuals(bpy.types.Panel, PARAMAPPER_PT_parsed_base):
     bl_idname = "PARAMAPPER_PT_visuals"
     bl_parent_id = "PARAMAPPER_PT_main"
     bl_label = "Visual Features"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_order = 40
-
-    @classmethod
-    def poll(cls, context):
-        obj = context.active_object
-        return obj and obj.type == "MESH" and obj.paramapper.dataset_has_been_parsed
 
     def draw(self, context):
         layout = self.layout
