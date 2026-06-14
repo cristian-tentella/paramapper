@@ -155,4 +155,4 @@ class InfographicGenerator:
             self.obj.select_set(True)
             self.context.view_layer.objects.active = self.obj
         except RuntimeError:
-            pass
+            pass  # Selection ops fail outside interactive context; node tree is already built.
