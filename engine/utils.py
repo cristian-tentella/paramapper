@@ -7,13 +7,14 @@ class GNTreeBuilder:
         self.nodes = node_tree.nodes
         self.links = node_tree.links
 
-    def create_node(self, node_type: str, location: tuple[float, float], **kwargs) -> bpy.types.Node:
+    def create_node(
+        self, node_type: str, location: tuple[float, float], **kwargs
+    ) -> bpy.types.Node:
         node = self.nodes.new(node_type)
         node.location = location
 
         for key, value in kwargs.items():
-            if hasattr(node, key):
-                setattr(node, key, value)
+            setattr(node, key, value)
 
         return node
 
