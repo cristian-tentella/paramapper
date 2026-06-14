@@ -130,9 +130,9 @@ def paramapper_rebuild_timer():
 
 def _vec_isclose(a, b, abs_tol: float) -> bool:
     return (
-        math.isclose(a[0], b[0], abs_tol)
-        and math.isclose(a[1], b[1], abs_tol)
-        and math.isclose(a[2], b[2], abs_tol)
+        math.isclose(a[0], b[0], abs_tol=abs_tol)
+        and math.isclose(a[1], b[1], abs_tol=abs_tol)
+        and math.isclose(a[2], b[2], abs_tol=abs_tol)
     )
 
 
