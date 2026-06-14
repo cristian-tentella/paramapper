@@ -185,7 +185,7 @@ class VisualBuilder:
 
         tokens = col_meta.unique_tokens.split("\n")
 
-        instances_socket = VisualBuilder._build_text_instances(props, builder, tokens)
+        instances_socket = VisualBuilder._build_text_geometry(props, builder, tokens)
 
         node_text_attr = builder.create_node(
             "GeometryNodeInputNamedAttribute", (800, -600), data_type="FLOAT"
