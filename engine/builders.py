@@ -5,6 +5,9 @@ from .utils import GNTreeBuilder
 
 
 class SpatialBuilder:
+    _SCALE_MIN = 0.1
+    _SCALE_MAX = 1.0
+
     @staticmethod
     def map_axes(props, builder: GNTreeBuilder, node_combine_xyz) -> int:
         axis_mappings = {"X": props.map_x, "Y": props.map_y, "Z": props.map_z}
@@ -42,8 +45,8 @@ class SpatialBuilder:
                     col_name=props.map_scale,
                     from_min=col_meta.min_val,
                     from_max=col_meta.max_val,
-                    to_min=0.1,
-                    to_max=1.0,
+                    to_min=SpatialBuilder._SCALE_MIN,
+                    to_max=SpatialBuilder._SCALE_MAX,
                     location=(-400, current_y),
                 )
 
@@ -138,6 +141,8 @@ class FilterBuilder:
 
 class VisualBuilder:
     _BASE_REDUCTION = 0.2
+    _BBOX_RADIUS = 0.02
+    _BBOX_RESOLUTION = 4
 
     @staticmethod
     def _build_text_geometry(
@@ -351,8 +356,8 @@ class VisualBuilder:
 
         node_c2m = builder.create_node("GeometryNodeCurveToMesh", (1400, 200))
         node_circle = builder.create_node("GeometryNodeCurvePrimitiveCircle", (1200, 50))
-        node_circle.inputs["Radius"].default_value = 0.02
-        node_circle.inputs["Resolution"].default_value = 4
+        node_circle.inputs["Radius"].default_value = VisualBuilder._BBOX_RADIUS
+        node_circle.inputs["Resolution"].default_value = VisualBuilder._BBOX_RESOLUTION
 
         builder.link(node_m2c.outputs[0], node_c2m.inputs["Curve"])
         builder.link(node_circle.outputs[0], node_c2m.inputs["Profile Curve"])
