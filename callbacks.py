@@ -106,7 +106,7 @@ def update_fast_filters(_, context: bpy.types.Context):
 @bpy.app.handlers.persistent
 def paramapper_frame_handler(scene):
     for obj in scene.objects:
-        if obj.type == "MESH" and hasattr(obj, "paramapper"):
+        if obj.type == "MESH":
             if obj.paramapper.auto_update and obj.paramapper.dataset_has_been_parsed:
                 apply_fast_updates(obj.paramapper, obj)
                 apply_filter_updates(obj)
@@ -114,7 +114,7 @@ def paramapper_frame_handler(scene):
 
 def paramapper_rebuild_timer():
     for obj in bpy.context.scene.objects:
-        if obj.type != "MESH" or not hasattr(obj, "paramapper"):
+        if obj.type != "MESH":
             continue
 
         props = obj.paramapper
@@ -130,7 +130,7 @@ def paramapper_rebuild_timer():
 
 def paramapper_scale_sync_timer():
     for obj in bpy.context.scene.objects:
-        if obj.type == "MESH" and hasattr(obj, "paramapper"):
+        if obj.type == "MESH":
             props = obj.paramapper
             if not props.dataset_has_been_parsed:
                 continue
