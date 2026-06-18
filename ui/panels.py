@@ -76,52 +76,70 @@ class PARAMAPPER_PT_parsed_base:
         return obj and obj.type == "MESH" and obj.paramapper.dataset_has_been_parsed
 
 
-class PARAMAPPER_PT_spatial(PARAMAPPER_PT_parsed_base, bpy.types.Panel):
-    bl_idname = "PARAMAPPER_PT_spatial"
+class PARAMAPPER_PT_mapping(PARAMAPPER_PT_parsed_base, bpy.types.Panel):
+    bl_idname = "PARAMAPPER_PT_mapping"
     bl_parent_id = "PARAMAPPER_PT_main"
-    bl_label = "Spatial Mapping"
+    bl_label = "Mapping"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_order = 20
 
     def draw(self, context):
         layout = self.layout
-        props = context.active_object.paramapper
+        layout.use_property_split = True
+        layout.use_property_decorate = False
 
-        col_axes = layout.column(align=True)
+        props = context.active_object.paramapper
+        obj = context.active_object
 
         def draw_axis_with_range(axis_prop, label):
             col_name = getattr(props, axis_prop)
-
-            split = col_axes.split(factor=0.7)
-            split.prop(props, axis_prop, text=label)
+            layout.prop(props, axis_prop, text=label)
 
             if col_name != "NONE":
                 col_meta = props.columns.get(col_name)
                 if col_meta and col_meta.data_type == "NUMERIC":
-                    info_row = split.row()
-                    info_row.active = False
-                    info_row.alignment = "RIGHT"
-                    info_row.label(text=f"[{col_meta.min_val:.2f} ↔ {col_meta.max_val:.2f}]")
+                    hint = layout.row()
+                    hint.active = False
+                    hint.alignment = "RIGHT"
+                    hint.label(text=f"{col_meta.min_val:.2f} ↔ {col_meta.max_val:.2f}")
 
         draw_axis_with_range("map_x", "X")
-        col_axes.separator(factor=0.5)
         draw_axis_with_range("map_y", "Y")
-        col_axes.separator(factor=0.5)
         draw_axis_with_range("map_z", "Z")
 
         layout.separator()
 
-        col_fit = layout.column(align=True)
-        col_fit.prop(
-            props, "auto_fit_bounds", text="Auto-Fit Filtered Data", icon="ARROW_LEFTRIGHT"
-        )
+        layout.prop(props, "map_scale", text="Scale")
 
         layout.separator()
 
-        col_mult = layout.column(align=True)
-        col_mult.prop(props, "bounds_size", text="Dimensions")
-        col_mult.prop(props, "global_scale", text="Items Base Size")
+        layout.prop(props, "map_text", text="Text")
+        if props.map_text != "NONE":
+            box_text = layout.box()
+            box_text.prop(props, "text_size", text="Size")
+            box_text.prop(props, "text_thickness", text="Thickness")
+            box_text.prop(props, "text_offset", text="Offset")
+            box_text.prop(props, "text_rotation", text="Rotation")
+            box_text.prop(props, "text_color", text="Color")
+
+        layout.separator()
+
+        show_color_ui = not props.instance_object or props.override_material
+        if show_color_ui:
+            layout.prop(props, "map_color", text="Color")
+
+            if props.map_color != "NONE":
+                mat_name = f"{PM.Materials.DATA}_{obj.name}"
+                mat = bpy.data.materials.get(mat_name)
+                node_ramp = (
+                    mat.node_tree.nodes.get(PM.Nodes.COLOR_RAMP) if mat and mat.use_nodes else None
+                )
+
+                if node_ramp:
+                    layout.template_color_ramp(node_ramp, "color_ramp", expand=False)
+                else:
+                    layout.label(text="Generate to edit Color Ramp", icon="INFO")
 
 
 class PARAMAPPER_PT_filters(PARAMAPPER_PT_parsed_base, bpy.types.Panel):
@@ -146,70 +164,57 @@ class PARAMAPPER_PT_filters(PARAMAPPER_PT_parsed_base, bpy.types.Panel):
         col.operator("paramapper.remove_filter", icon="REMOVE", text="")
 
 
-class PARAMAPPER_PT_visuals(PARAMAPPER_PT_parsed_base, bpy.types.Panel):
-    bl_idname = "PARAMAPPER_PT_visuals"
+class PARAMAPPER_PT_bounds(PARAMAPPER_PT_parsed_base, bpy.types.Panel):
+    bl_idname = "PARAMAPPER_PT_bounds"
     bl_parent_id = "PARAMAPPER_PT_main"
-    bl_label = "Visual Features"
+    bl_label = "Bounds"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_order = 40
 
     def draw(self, context):
         layout = self.layout
-        props = context.active_object.paramapper
-        obj = context.active_object
+        layout.use_property_split = True
+        layout.use_property_decorate = False
 
-        box_anim = layout.box()
-        row_anim = box_anim.row(align=True)
-        row_anim.prop(props, "build_up", text="Build-up", icon="TIME")
+        props = context.active_object.paramapper
+
+        layout.prop(props, "bounds_size", text="Dimensions")
+        layout.prop(props, "global_scale", text="Items Base Size")
+
         layout.separator()
 
-        col_model = layout.column(align=True)
-        col_model.prop(props, "instance_object", text="Instance Model")
+        layout.prop(props, "auto_fit_bounds", text="Auto-Fit Filtered Data")
 
+        layout.separator()
+
+        layout.prop(props, "show_bounding_box")
+        if props.show_bounding_box:
+            layout.prop(props, "bbox_color", text="Color")
+
+
+class PARAMAPPER_PT_visuals(PARAMAPPER_PT_parsed_base, bpy.types.Panel):
+    bl_idname = "PARAMAPPER_PT_visuals"
+    bl_parent_id = "PARAMAPPER_PT_main"
+    bl_label = "Style"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_order = 50
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        props = context.active_object.paramapper
+
+        layout.prop(props, "build_up", text="Build-up", icon="TIME")
+
+        layout.separator()
+
+        layout.prop(props, "instance_object", text="Instance Model")
         if props.instance_object:
-            col_model.prop(props, "override_material")
-            hint = col_model.row()
+            layout.prop(props, "override_material")
+            hint = layout.row()
             hint.active = False
             hint.label(text="Set origin to geometry for correct positioning", icon="INFO")
-
-        layout.separator()
-
-        col_mapping = layout.column(align=True)
-        col_mapping.prop(props, "map_scale", text="Map Scale To")
-        col_mapping.prop(props, "map_text", text="Map Text To")
-
-        layout.separator()
-
-        box_bbox = layout.box()
-        box_bbox.prop(props, "show_bounding_box")
-        if props.show_bounding_box:
-            box_bbox.prop(props, "bbox_color", text="Color")
-
-        if props.map_text != "NONE":
-            box_text = layout.box()
-            box_text.prop(props, "text_size", text="Size")
-            box_text.prop(props, "text_thickness", text="Thickness")
-            box_text.prop(props, "text_offset", text="Offset")
-            box_text.prop(props, "text_rotation", text="Rotation")
-            box_text.prop(props, "text_color", text="Color")
-
-        layout.separator()
-
-        show_color_ui = not props.instance_object or props.override_material
-
-        if show_color_ui:
-            layout.prop(props, "map_color", text="Color")
-
-            if props.map_color != "NONE":
-                mat_name = f"{PM.Materials.DATA}_{obj.name}"
-                mat = bpy.data.materials.get(mat_name)
-                node_ramp = (
-                    mat.node_tree.nodes.get(PM.Nodes.COLOR_RAMP) if mat and mat.use_nodes else None
-                )
-
-                if node_ramp:
-                    box_ramp = layout.box()
-                    box_ramp.template_color_ramp(node_ramp, "color_ramp", expand=True)
-                else:
-                    layout.label(text="Generate to edit Color Ramp", icon="INFO")
