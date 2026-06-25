@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import bpy  # type: ignore
 
 from ..constants import PM
-from .builders import AnimationBuilder, FilterBuilder, SpatialBuilder, VisualBuilder
+from .builders import AnimationBuilder, AxisBuilder, FilterBuilder, SpatialBuilder, VisualBuilder
 from .materials import MaterialFactory
 from .utils import GNTreeBuilder
 
@@ -86,12 +86,16 @@ class InfographicGenerator:
 
         return _BaseNodes(node_output, node_set_pos, node_combine_xyz, limits_geo)
 
-    def _join_and_output(self, builder: GNTreeBuilder, main_geo, text_geo, bbox_geo, node_output):
+    def _join_and_output(
+        self, builder: GNTreeBuilder, main_geo, text_geo, bbox_geo, axis_geo, node_output
+    ):
         geos = [main_geo]
         if text_geo:
             geos.append(text_geo)
         if bbox_geo:
             geos.append(bbox_geo)
+        if axis_geo:
+            geos.append(axis_geo)
 
         if len(geos) > 1:
             node_join = builder.create_node("GeometryNodeJoinGeometry", (2000, 0))
@@ -148,7 +152,11 @@ class InfographicGenerator:
 
         bbox_geo = VisualBuilder.add_bounding_box(self.props, builder, base.limits_geo, mat_bbox)
 
-        self._join_and_output(builder, main_geo, text_geo, bbox_geo, base.node_output)
+        axis_geo, current_y = AxisBuilder.build_axis_labels(
+            self.props, builder, mat_text, current_y
+        )
+
+        self._join_and_output(builder, main_geo, text_geo, bbox_geo, axis_geo, base.node_output)
 
         try:
             bpy.ops.object.select_all(action="DESELECT")

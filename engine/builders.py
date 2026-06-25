@@ -1,6 +1,7 @@
 import bpy  # type: ignore
 
 from ..constants import PM
+from .ticks import generate_ticks
 from .utils import GNTreeBuilder
 
 
@@ -437,3 +438,116 @@ class AnimationBuilder:
             text_geo = node_scale_text.outputs[0]
 
         return main_geo, text_geo
+
+
+class AxisBuilder:
+    _OFFSET = 0.5
+
+    @staticmethod
+    def build_axis_labels(props, builder: GNTreeBuilder, mat, current_y: int):
+        if not props.show_axis_labels:
+            return None, current_y
+
+        node_spread = builder.nodes.get(PM.Nodes.SPREAD)
+        if not node_spread:
+            return None, current_y
+
+        node_sep = builder.create_node("ShaderNodeSeparateXYZ", (-2200, current_y))
+        builder.link(node_spread.outputs[0], node_sep.inputs[0])
+        sep_outputs = [node_sep.outputs["X"], node_sep.outputs["Y"], node_sep.outputs["Z"]]
+
+        axis_configs = [
+            (props.map_x, 0),
+            (props.map_y, 1),
+            (props.map_z, 2),
+        ]
+
+        axis_geos = []
+
+        for col_name, axis_idx in axis_configs:
+            if col_name == "NONE":
+                continue
+
+            col_meta = props.columns.get(col_name)
+            if not col_meta:
+                continue
+
+            ticks = generate_ticks(
+                col_meta.min_val,
+                col_meta.max_val,
+                props.axis_label_count,
+                col_meta.data_type,
+            )
+
+            tick_geos = []
+
+            for tick in ticks:
+                node_str = builder.create_node("GeometryNodeStringToCurves", (-2200, current_y))
+                node_str.inputs["String"].default_value = tick.label
+
+                node_fill = builder.create_node("GeometryNodeFillCurve", (-2000, current_y))
+                builder.link(node_str.outputs[0], node_fill.inputs[0])
+
+                node_scale = builder.create_node("ShaderNodeCombineXYZ", (-1800, current_y))
+                node_scale.inputs["X"].default_value = props.axis_label_size
+                node_scale.inputs["Y"].default_value = props.axis_label_size
+                node_scale.inputs["Z"].default_value = props.axis_label_size
+
+                node_mul = builder.create_node("ShaderNodeMath", (-1800, current_y - 150))
+                node_mul.operation = "MULTIPLY"
+                node_mul.inputs[1].default_value = tick.fraction
+                builder.link(sep_outputs[axis_idx], node_mul.inputs[0])
+
+                node_pos = builder.create_node("ShaderNodeCombineXYZ", (-1600, current_y - 150))
+                offset = AxisBuilder._OFFSET
+                if axis_idx == 0:
+                    builder.link(node_mul.outputs[0], node_pos.inputs["X"])
+                    node_pos.inputs["Y"].default_value = -offset
+                    node_pos.inputs["Z"].default_value = -offset
+                elif axis_idx == 1:
+                    node_pos.inputs["X"].default_value = -offset
+                    builder.link(node_mul.outputs[0], node_pos.inputs["Y"])
+                    node_pos.inputs["Z"].default_value = -offset
+                else:
+                    node_pos.inputs["X"].default_value = -offset
+                    node_pos.inputs["Y"].default_value = -offset
+                    builder.link(node_mul.outputs[0], node_pos.inputs["Z"])
+
+                node_transform = builder.create_node("GeometryNodeTransform", (-1400, current_y))
+                builder.link(node_fill.outputs[0], node_transform.inputs["Geometry"])
+                builder.link(node_pos.outputs[0], node_transform.inputs["Translation"])
+                builder.link(node_scale.outputs[0], node_transform.inputs["Scale"])
+
+                tick_geos.append(node_transform.outputs[0])
+                current_y -= 350
+
+            if not tick_geos:
+                continue
+
+            if len(tick_geos) == 1:
+                axis_geos.append(tick_geos[0])
+            else:
+                node_join = builder.create_node("GeometryNodeJoinGeometry", (-1200, current_y))
+                for geo in tick_geos:
+                    builder.link(geo, node_join.inputs[0])
+                axis_geos.append(node_join.outputs[0])
+                current_y -= 200
+
+        if not axis_geos:
+            return None, current_y
+
+        if len(axis_geos) == 1:
+            combined_geo = axis_geos[0]
+        else:
+            node_join_all = builder.create_node("GeometryNodeJoinGeometry", (-1000, current_y))
+            for geo in axis_geos:
+                builder.link(geo, node_join_all.inputs[0])
+            combined_geo = node_join_all.outputs[0]
+            current_y -= 200
+
+        node_set_mat = builder.create_node("GeometryNodeSetMaterial", (-800, current_y))
+        if mat:
+            node_set_mat.inputs["Material"].default_value = mat
+        builder.link(combined_geo, node_set_mat.inputs["Geometry"])
+
+        return node_set_mat.outputs[0], current_y - 200

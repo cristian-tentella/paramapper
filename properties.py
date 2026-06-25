@@ -224,3 +224,28 @@ class PARAMAPPER_PG_Settings(bpy.types.PropertyGroup):
         max=1.0,
         update=update_fast,
     )
+
+    # Axis labels
+
+    show_axis_labels: bpy.props.BoolProperty(  # type: ignore
+        name="Show Axis Labels",
+        description="Display numeric tick labels along each mapped axis",
+        default=False,
+        update=update_infographic,
+    )
+
+    axis_label_count: bpy.props.IntProperty(  # type: ignore
+        name="Tick Count",
+        description="Target number of tick labels per axis",
+        default=5,
+        min=2,
+        max=20,
+        update=update_infographic,
+    )
+
+    axis_label_size: bpy.props.FloatProperty(  # type: ignore
+        name="Label Size",
+        default=0.5,
+        min=0.01,
+        update=update_infographic,
+    )

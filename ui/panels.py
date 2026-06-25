@@ -192,6 +192,14 @@ class PARAMAPPER_PT_bounds(PARAMAPPER_PT_parsed_base, bpy.types.Panel):
         if props.show_bounding_box:
             layout.prop(props, "bbox_color", text="Color")
 
+        layout.separator()
+
+        layout.prop(props, "show_axis_labels")
+        if props.show_axis_labels:
+            col = layout.column(align=True)
+            col.prop(props, "axis_label_count", text="Tick Count")
+            col.prop(props, "axis_label_size", text="Size")
+
 
 class PARAMAPPER_PT_visuals(PARAMAPPER_PT_parsed_base, bpy.types.Panel):
     bl_idname = "PARAMAPPER_PT_visuals"
