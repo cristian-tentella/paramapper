@@ -15,7 +15,7 @@ def generate_ticks(
     target_count: int = 5,
     data_type: str = "NUMERIC",
 ) -> list[AxisTick]:
-    target_count = max(1, target_count)
+    count = max(2, target_count)
 
     if min_val == max_val:
         if data_type == "DATETIME":
@@ -25,60 +25,32 @@ def generate_ticks(
         return [AxisTick(fraction=0.0, label=label)]
 
     val_range = max_val - min_val
-    nice_step = _nice_step(val_range, target_count)
-
-    values = [min_val]
-
-    # Tolerance so a tick exactly one step from an endpoint is kept despite float
-    # error (e.g. 40.0 - 39.8 evaluating to 0.19999...).
-    min_gap = nice_step * (1.0 - 1e-9)
-
-    tick_min = math.ceil(min_val / nice_step) * nice_step
-    i = 0
-    while True:
-        v = tick_min + i * nice_step
-        if v >= max_val:
-            break
-        if (v - min_val) >= min_gap and (max_val - v) >= min_gap:
-            values.append(v)
-        i += 1
-
-    values.append(max_val)
+    step = val_range / (count - 1)
 
     ticks = []
-    for v in values:
-        fraction = max(0.0, min(1.0, (v - min_val) / val_range))
+    for k in range(count):
+        fraction = k / (count - 1)
+        value = min_val + fraction * val_range
         if data_type == "DATETIME":
-            label = _format_datetime(v, nice_step)
+            label = _format_datetime(value, step)
         else:
-            label = _format_numeric(v, nice_step)
+            label = _format_numeric(value, step)
         ticks.append(AxisTick(fraction=fraction, label=label))
 
     return ticks
 
 
-def _nice_step(val_range: float, target_count: int) -> float:
-    raw_step = val_range / target_count
-    magnitude = 10.0 ** math.floor(math.log10(raw_step))
-    normalized = raw_step / magnitude
-
-    if normalized < 1.5:
-        nice = 1.0
-    elif normalized < 3.0:
-        nice = 2.0
-    elif normalized < 7.0:
-        nice = 5.0
-    else:
-        nice = 10.0
-
-    return nice * magnitude
-
-
 def _format_numeric(value: float, step: float) -> str:
-    if step >= 1.0:
-        return str(int(round(value)))
-    decimals = abs(math.floor(math.log10(step)))
-    return f"{value:.{decimals}f}"
+    return f"{value:.{_decimals_for_step(step)}f}"
+
+
+def _decimals_for_step(step: float) -> int:
+    if step <= 0:
+        return 0
+    if abs(step - round(step)) < 1e-9 * max(1.0, abs(step)):
+        return 0
+    exponent = math.floor(math.log10(step))
+    return max(0, 1 - exponent)
 
 
 def _format_datetime(epoch: float, step_seconds: float) -> str:
