@@ -177,3 +177,53 @@ def get_parser(filepath: str) -> DataParser:
             return CSVParser(filepath)
         case _:
             raise ValueError(f"Files with .{file_extension} extension are not supported")
+
+
+# These should be kept in sync with the GeometryNodes filter logic in
+# FilterBuilder.apply_culling (FunctionNodeCompare operations). If they diverge,
+# auto-fit axis labels will not match the data the node graph keeps.
+_FILTER_OPS = {
+    "GREATER_THAN": lambda col, val: col > val,
+    "LESS_THAN": lambda col, val: col < val,
+    "EQUAL": lambda col, val: col == val,
+    "NOT_EQUAL": lambda col, val: col != val,
+}
+
+
+def compute_filtered_ranges(
+    sanitized_csv_path: str,
+    column_names: list[str],
+    filters: list[tuple[str, str, float]],
+) -> dict[str, tuple[float, float]]:
+    with open(sanitized_csv_path, mode="r", newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        headers = next(reader, [])
+        rows = [row for row in reader if row]
+
+    if not rows:
+        return {}
+
+    header_idx = {h.strip(): i for i, h in enumerate(headers)}
+    matrix = np.array(rows, dtype=float)
+
+    mask = np.ones(matrix.shape[0], dtype=bool)
+    for col, op, val in filters:
+        idx = header_idx.get(col)
+        predicate = _FILTER_OPS.get(op)
+        if idx is None or predicate is None:
+            continue
+        mask &= predicate(matrix[:, idx], val)
+
+    surviving = matrix[mask]
+    if surviving.shape[0] == 0:
+        return {}
+
+    ranges: dict[str, tuple[float, float]] = {}
+    for name in column_names:
+        idx = header_idx.get(name)
+        if idx is None:
+            continue
+        col_vals = surviving[:, idx]
+        ranges[name] = (float(np.min(col_vals)), float(np.max(col_vals)))
+
+    return ranges

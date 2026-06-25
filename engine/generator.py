@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import bpy  # type: ignore
 
 from ..constants import PM
+from ..io.parsers import compute_filtered_ranges
 from .builders import AnimationBuilder, AxisBuilder, FilterBuilder, SpatialBuilder, VisualBuilder
 from .materials import MaterialFactory
 from .utils import GNTreeBuilder
@@ -86,6 +87,32 @@ class InfographicGenerator:
 
         return _BaseNodes(node_output, node_set_pos, node_combine_xyz, limits_geo)
 
+    def _compute_axis_ranges(self, sanitized_csv_path: str):
+        props = self.props
+        axis_map = [(props.map_x, 0), (props.map_y, 1), (props.map_z, 2)]
+
+        # When auto-fit stretches filtered points to the bounds, the axis must be
+        # labelled with the filtered range, not the full dataset range.
+        filtered: dict[str, tuple[float, float]] = {}
+        active_filters = [(f.column, f.operation, f.value) for f in props.filters if f.column != "NONE"]
+        if props.auto_fit_bounds and active_filters:
+            axis_cols = [col for col, _ in axis_map if col != "NONE"]
+            filtered = compute_filtered_ranges(sanitized_csv_path, axis_cols, active_filters)
+
+        ranges = []
+        for col_name, axis_idx in axis_map:
+            if col_name == "NONE":
+                continue
+
+            col_meta = props.columns.get(col_name)
+            if not col_meta:
+                continue
+
+            min_val, max_val = filtered.get(col_name, (col_meta.min_val, col_meta.max_val))
+            ranges.append((axis_idx, min_val, max_val, col_meta.data_type))
+
+        return ranges
+
     def _join_and_output(
         self, builder: GNTreeBuilder, main_geo, text_geo, bbox_geo, axis_geo, node_output
     ):
@@ -152,8 +179,9 @@ class InfographicGenerator:
 
         bbox_geo = VisualBuilder.add_bounding_box(self.props, builder, base.limits_geo, mat_bbox)
 
+        axis_ranges = self._compute_axis_ranges(sanitized_csv_path)
         axis_geo, current_y = AxisBuilder.build_axis_labels(
-            self.props, builder, mat_text, current_y
+            self.props, builder, mat_text, axis_ranges, current_y
         )
 
         self._join_and_output(builder, main_geo, text_geo, bbox_geo, axis_geo, base.node_output)

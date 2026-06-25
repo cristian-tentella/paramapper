@@ -444,8 +444,8 @@ class AxisBuilder:
     _OFFSET = 0.5
 
     @staticmethod
-    def build_axis_labels(props, builder: GNTreeBuilder, mat, current_y: int):
-        if not props.show_axis_labels:
+    def build_axis_labels(props, builder: GNTreeBuilder, mat, axis_ranges, current_y: int):
+        if not props.show_axis_labels or not axis_ranges:
             return None, current_y
 
         node_spread = builder.nodes.get(PM.Nodes.SPREAD)
@@ -456,27 +456,14 @@ class AxisBuilder:
         builder.link(node_spread.outputs[0], node_sep.inputs[0])
         sep_outputs = [node_sep.outputs["X"], node_sep.outputs["Y"], node_sep.outputs["Z"]]
 
-        axis_configs = [
-            (props.map_x, 0),
-            (props.map_y, 1),
-            (props.map_z, 2),
-        ]
-
         axis_geos = []
 
-        for col_name, axis_idx in axis_configs:
-            if col_name == "NONE":
-                continue
-
-            col_meta = props.columns.get(col_name)
-            if not col_meta:
-                continue
-
+        for axis_idx, min_val, max_val, data_type in axis_ranges:
             ticks = generate_ticks(
-                col_meta.min_val,
-                col_meta.max_val,
+                min_val,
+                max_val,
                 props.axis_label_count,
-                col_meta.data_type,
+                data_type,
             )
 
             tick_geos = []

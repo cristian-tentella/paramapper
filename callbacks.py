@@ -1,9 +1,13 @@
 import math
+import time
 
 import bpy  # type: ignore
 
 from .constants import PM
 from .engine.materials import find_bsdf_and_set_color
+
+_FILTER_REBUILD_DEBOUNCE = 0.2
+_pending_filter_rebuild: dict[str, float] = {}
 
 
 def _get_props(context: bpy.types.Context):
@@ -102,6 +106,9 @@ def update_fast_filters(_, context: bpy.types.Context):
 
     apply_filter_updates(context.active_object)
 
+    if props.auto_fit_bounds and props.show_axis_labels:
+        _pending_filter_rebuild[context.active_object.name] = time.monotonic()
+
 
 @bpy.app.handlers.persistent
 def paramapper_frame_handler(scene):
@@ -113,11 +120,18 @@ def paramapper_frame_handler(scene):
 
 
 def paramapper_rebuild_timer():
+    now = time.monotonic()
+
     for obj in bpy.context.scene.objects:
         if obj.type != "MESH":
             continue
 
         props = obj.paramapper
+
+        requested = _pending_filter_rebuild.get(obj.name)
+        if requested is not None and (now - requested) >= _FILTER_REBUILD_DEBOUNCE:
+            del _pending_filter_rebuild[obj.name]
+            props.needs_rebuild = True
 
         if not props.needs_rebuild:
             continue

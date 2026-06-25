@@ -27,21 +27,32 @@ def generate_ticks(
     val_range = max_val - min_val
     nice_step = _nice_step(val_range, target_count)
 
-    tick_min = math.ceil(min_val / nice_step) * nice_step
+    values = [min_val]
 
-    ticks = []
+    # Tolerance so a tick exactly one step from an endpoint is kept despite float
+    # error (e.g. 40.0 - 39.8 evaluating to 0.19999...).
+    min_gap = nice_step * (1.0 - 1e-9)
+
+    tick_min = math.ceil(min_val / nice_step) * nice_step
     i = 0
     while True:
         v = tick_min + i * nice_step
-        if v > max_val + nice_step * 1e-9:
+        if v >= max_val:
             break
+        if (v - min_val) >= min_gap and (max_val - v) >= min_gap:
+            values.append(v)
+        i += 1
+
+    values.append(max_val)
+
+    ticks = []
+    for v in values:
         fraction = max(0.0, min(1.0, (v - min_val) / val_range))
         if data_type == "DATETIME":
             label = _format_datetime(v, nice_step)
         else:
             label = _format_numeric(v, nice_step)
         ticks.append(AxisTick(fraction=fraction, label=label))
-        i += 1
 
     return ticks
 
